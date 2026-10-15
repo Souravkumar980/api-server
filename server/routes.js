@@ -2264,6 +2264,8 @@ router.get('/link-preview', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
 // Active SSE clients for real-time live events
 const sseClients = new Set();
 

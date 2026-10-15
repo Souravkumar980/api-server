@@ -47,15 +47,17 @@ app.use('/api', globalLimiter);
 // API Routes
 app.use('/api', apiRoutes);
 
-// Health check
-app.get('/health', (req, res) => {
+// Health checks
+const sendHealth = (req, res) => {
   res.json({
     status: 'ONLINE',
     system: 'Exposed Propagandus Core',
     slogan: 'Bharat Mata ki Jai 🇮🇳',
     timestamp: new Date().toISOString()
   });
-});
+};
+app.get('/health', sendHealth);
+app.get('/api/health', sendHealth);
 
 // Serve frontend static assets
 app.use(express.static(distPath));
