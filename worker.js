@@ -150,12 +150,12 @@ export default {
       if (env.DB) {
         try {
           const usersRes = await env.DB.prepare('SELECT id, name, username, email, phone, avatar_url, verified_type, is_admin, is_banned, created_at FROM community_users ORDER BY created_at DESC').all();
-          const msgsRes = await env.DB.prepare('SELECT * FROM community_messages WHERE is_deleted = 0 ORDER BY created_at ASC LIMIT 200').all();
+          const msgsRes = await env.DB.prepare('SELECT * FROM community_messages WHERE is_deleted = 0 ORDER BY created_at DESC LIMIT 200').all();
           const chansRes = await env.DB.prepare('SELECT * FROM community_channels ORDER BY created_at DESC').all();
           const notifsRes = await env.DB.prepare('SELECT * FROM community_notifications ORDER BY created_at DESC LIMIT 100').all();
           const queriesRes = await env.DB.prepare('SELECT * FROM community_contact_queries ORDER BY created_at DESC LIMIT 100').all();
 
-          const parsedMsgs = (msgsRes.results || []).map(m => ({
+          const parsedMsgs = (msgsRes.results || []).reverse().map(m => ({
             ...m,
             attachments: m.attachments ? JSON.parse(m.attachments) : [],
             media_links: m.media_links ? JSON.parse(m.media_links) : [],
@@ -169,23 +169,32 @@ export default {
             pending_requests: c.pending_requests ? JSON.parse(c.pending_requests) : []
           }));
 
+          const allQueries = queriesRes.results || [];
+          const influencerQueries = allQueries.filter(q => q.type === 'creator');
+          const contactQueries = allQueries.filter(q => q.type !== 'creator');
+
           return new Response(JSON.stringify({
             users: usersRes.results || [],
             messages: parsedMsgs,
             channels: parsedChans,
             notifications: notifsRes.results || [],
-            adminQueries: queriesRes.results || []
+            adminQueries: allQueries,
+            influencerQueries,
+            contactQueries
           }), { headers: JSON_HEADERS });
         } catch (e) {}
       }
 
       // Memory Fallback
+      const allMemQueries = memoryState.adminQueries || [];
       return new Response(JSON.stringify({
         users: memoryState.users,
         messages: memoryState.messages.filter(m => !m.is_deleted),
         channels: memoryState.channels,
         notifications: memoryState.notifications,
-        adminQueries: memoryState.adminQueries
+        adminQueries: allMemQueries,
+        influencerQueries: allMemQueries.filter(q => q.type === 'creator'),
+        contactQueries: allMemQueries.filter(q => q.type !== 'creator')
       }), { headers: JSON_HEADERS });
     }
 
@@ -407,6 +416,122 @@ export default {
         }
 
         return new Response(JSON.stringify({ success: true, channel: newChan }), { headers: JSON_HEADERS });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
+      }
+    }
+
+    // -------------------------------------------------------------
+    // COMMUNITY: CHANNEL REQUEST TO JOIN
+    // -------------------------------------------------------------
+    if ((path === '/api/community/channels/request' || (path.startsWith('/api/community/channels/') && path.endsWith('/request'))) && request.method === 'POST') {
+      try {
+        const body = await request.json();
+        const chanId = body.channel_id || body.id || path.split('/')[4];
+        const { user_id, name, username, avatar_url } = body;
+        if (!user_id || !chanId) {
+          return new Response(JSON.stringify({ error: 'User ID and Channel ID required.' }), { status: 400, headers: JSON_HEADERS });
+        }
+
+        const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        let requests = [];
+        let chan = null;
+
+        if (env.DB) {
+          chan = await env.DB.prepare('SELECT * FROM community_channels WHERE id = ?').bind(chanId).first();
+          if (!chan) return new Response(JSON.stringify({ error: 'Channel not found.' }), { status: 404, headers: JSON_HEADERS });
+          requests = chan.pending_requests ? JSON.parse(chan.pending_requests) : [];
+          if (!requests.some(r => r.user_id === user_id)) {
+            requests.push({ user_id, name: name || 'Citizen', username: username || 'user', avatar_url: avatar_url || null, requested_at: nowTime });
+            await env.DB.prepare('UPDATE community_channels SET pending_requests = ? WHERE id = ?').bind(JSON.stringify(requests), chanId).run();
+          }
+
+          const notifId = 'notif_chan_' + Date.now();
+          const notifMsg = `@${username || 'user'} (${name || 'Citizen'}) requested to participate in your private channel "${chan.name}"`;
+          await env.DB.prepare(`
+            INSERT INTO community_notifications (id, recipient_username, sender_username, sender_name, message, is_read, type, channel_id, requester_id, created_at)
+            VALUES (?, ?, ?, ?, ?, 0, 'channel_request', ?, ?, ?)
+          `).bind(notifId, String(chan.creator_username || '').toLowerCase(), username || 'user', name || 'Citizen', notifMsg, chanId, user_id, nowTime).run();
+        } else {
+          chan = memoryState.channels.find(c => c.id === chanId);
+          if (!chan) return new Response(JSON.stringify({ error: 'Channel not found.' }), { status: 404, headers: JSON_HEADERS });
+          requests = chan.pending_requests || [];
+          if (!requests.some(r => r.user_id === user_id)) {
+            requests.push({ user_id, name: name || 'Citizen', username: username || 'user', avatar_url: avatar_url || null, requested_at: nowTime });
+            chan.pending_requests = requests;
+          }
+        }
+
+        return new Response(JSON.stringify({ success: true, requests }), { headers: JSON_HEADERS });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
+      }
+    }
+
+    // -------------------------------------------------------------
+    // COMMUNITY: ADMIT PARTICIPANT TO CHANNEL
+    // -------------------------------------------------------------
+    if ((path === '/api/community/channels/admit' || (path.startsWith('/api/community/channels/') && path.endsWith('/admit'))) && request.method === 'POST') {
+      try {
+        const body = await request.json();
+        const chanId = body.channel_id || body.id || path.split('/')[4];
+        const { participant_user_id } = body;
+        if (!chanId || !participant_user_id) {
+          return new Response(JSON.stringify({ error: 'Channel ID and Participant User ID required.' }), { status: 400, headers: JSON_HEADERS });
+        }
+
+        let members = [];
+        let requests = [];
+
+        if (env.DB) {
+          const chan = await env.DB.prepare('SELECT * FROM community_channels WHERE id = ?').bind(chanId).first();
+          if (!chan) return new Response(JSON.stringify({ error: 'Channel not found.' }), { status: 404, headers: JSON_HEADERS });
+          members = chan.members ? JSON.parse(chan.members) : [];
+          requests = chan.pending_requests ? JSON.parse(chan.pending_requests) : [];
+          if (!members.includes(participant_user_id)) members.push(participant_user_id);
+          requests = requests.filter(r => r.user_id !== participant_user_id);
+          await env.DB.prepare('UPDATE community_channels SET members = ?, pending_requests = ? WHERE id = ?').bind(JSON.stringify(members), JSON.stringify(requests), chanId).run();
+        } else {
+          const chan = memoryState.channels.find(c => c.id === chanId);
+          if (!chan) return new Response(JSON.stringify({ error: 'Channel not found.' }), { status: 404, headers: JSON_HEADERS });
+          members = chan.members || [];
+          requests = chan.pending_requests || [];
+          if (!members.includes(participant_user_id)) members.push(participant_user_id);
+          requests = requests.filter(r => r.user_id !== participant_user_id);
+          chan.members = members;
+          chan.pending_requests = requests;
+        }
+
+        return new Response(JSON.stringify({ success: true, members, requests }), { headers: JSON_HEADERS });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
+      }
+    }
+
+    // -------------------------------------------------------------
+    // COMMUNITY: DENY PARTICIPANT FROM CHANNEL
+    // -------------------------------------------------------------
+    if ((path === '/api/community/channels/deny' || (path.startsWith('/api/community/channels/') && path.endsWith('/deny'))) && request.method === 'POST') {
+      try {
+        const body = await request.json();
+        const chanId = body.channel_id || body.id || path.split('/')[4];
+        const { participant_user_id } = body;
+        let requests = [];
+
+        if (env.DB) {
+          const chan = await env.DB.prepare('SELECT pending_requests FROM community_channels WHERE id = ?').bind(chanId).first();
+          if (!chan) return new Response(JSON.stringify({ error: 'Channel not found.' }), { status: 404, headers: JSON_HEADERS });
+          requests = chan.pending_requests ? JSON.parse(chan.pending_requests) : [];
+          requests = requests.filter(r => r.user_id !== participant_user_id);
+          await env.DB.prepare('UPDATE community_channels SET pending_requests = ? WHERE id = ?').bind(JSON.stringify(requests), chanId).run();
+        } else {
+          const chan = memoryState.channels.find(c => c.id === chanId);
+          if (!chan) return new Response(JSON.stringify({ error: 'Channel not found.' }), { status: 404, headers: JSON_HEADERS });
+          requests = (chan.pending_requests || []).filter(r => r.user_id !== participant_user_id);
+          chan.pending_requests = requests;
+        }
+
+        return new Response(JSON.stringify({ success: true, requests }), { headers: JSON_HEADERS });
       } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
       }

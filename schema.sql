@@ -59,6 +59,10 @@ CREATE TABLE IF NOT EXISTS community_notifications (
   sender_name TEXT NOT NULL,
   message TEXT NOT NULL,
   is_read INTEGER DEFAULT 0,
+  type TEXT DEFAULT 'mention',
+  channel_id TEXT,
+  requester_id TEXT,
+  dm_user_id TEXT,
   created_at TEXT NOT NULL
 );
 
