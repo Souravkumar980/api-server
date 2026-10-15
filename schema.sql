@@ -174,7 +174,97 @@ CREATE TABLE IF NOT EXISTS visit_traffic (
   created_at TEXT NOT NULL
 );
 
--- Seed Default Admin
+-- -------------------------------------------------------------
+-- Admin Users Table (For Admin Panel Authentication)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS admin_users (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT DEFAULT 'superadmin',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+-- Seed Master Admin into admin_users
+INSERT OR IGNORE INTO admin_users (
+  id, name, email, password_hash, role, created_at, updated_at
+) VALUES (
+  'admin-primary', 'Om Kumar', 'omkumar.working@gmail.com', 'Q0gng04bk3', 'superadmin', '2026-10-15T00:00:00.000Z', '2026-10-15T00:00:00.000Z'
+);
+
+-- -------------------------------------------------------------
+-- Reports Table (User Submissions & Flags to Admin)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS reports (
+  id TEXT PRIMARY KEY,
+  entity_id TEXT,
+  entity_name TEXT,
+  report_type TEXT NOT NULL,
+  message TEXT NOT NULL,
+  status TEXT DEFAULT 'pending',
+  reported_by_ip TEXT,
+  created_at TEXT NOT NULL
+);
+
+-- -------------------------------------------------------------
+-- Blocked Attempts (Hostile Blacklist Attempts on National Figures)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS blocked_attempts (
+  id TEXT PRIMARY KEY,
+  ip TEXT NOT NULL,
+  attempted_name TEXT,
+  details TEXT,
+  created_at TEXT NOT NULL
+);
+
+-- -------------------------------------------------------------
+-- Activity Logs (Audit Trail for Administrative Actions)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS activity_logs (
+  id TEXT PRIMARY KEY,
+  action TEXT NOT NULL,
+  details TEXT,
+  ip TEXT,
+  created_at TEXT NOT NULL
+);
+
+-- -------------------------------------------------------------
+-- Announcements (Ticker & Banners)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS announcements (
+  id TEXT PRIMARY KEY,
+  content TEXT NOT NULL,
+  is_active INTEGER DEFAULT 1,
+  created_at TEXT NOT NULL
+);
+
+-- -------------------------------------------------------------
+-- Playlist Tracks (Patriotic Audio Player)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS playlist_tracks (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  artist TEXT,
+  audio_url TEXT NOT NULL,
+  duration TEXT,
+  is_active INTEGER DEFAULT 1,
+  created_at TEXT NOT NULL
+);
+
+-- -------------------------------------------------------------
+-- Site Categories
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS site_categories (
+  id TEXT PRIMARY KEY,
+  name TEXT UNIQUE NOT NULL,
+  description TEXT,
+  color TEXT,
+  created_at TEXT NOT NULL
+);
+
+-- Seed Default Admin in Community Users
 INSERT OR IGNORE INTO community_users (
   id, name, username, email, phone, password_hash, avatar_url, verified_type, ip_address, is_admin, is_banned, created_at, updated_at
 ) VALUES (
@@ -187,3 +277,4 @@ INSERT OR IGNORE INTO community_messages (
 ) VALUES (
   'msg_welcome_1', 'public', 'usr_admin_master', 'Om Kumar (Admin)', 'omkumar', 'https://api.dicebear.com/7.x/bottts/svg?seed=omkumar', 'influencer', '🇮🇳 Welcome to the Sovereign Citizen Community! Connect, speak truth, share insights, and organize freely. Jai Hind, Bharat Mata ki Jai! 🚩', '[]', '[]', NULL, '{"🇮🇳":[{"user_id":"usr_admin_master","username":"omkumar"}]}', NULL, 0, '05:30 AM'
 );
+
