@@ -1,0 +1,31 @@
+{
+  "name": "api-server",
+  "version": "1.0.0",
+  "description": "Propagandus Sovereign Citizen Community API Server - Dual Node.js & Cloudflare Worker compatibility",
+  "main": "server/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js",
+    "deploy": "wrangler deploy",
+    "dev:worker": "wrangler dev"
+  },
+  "keywords": [
+    "cloudflare-worker",
+    "api-server",
+    "express",
+    "realtime-chat"
+  ],
+  "author": "Sourav Kumar",
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
+    "helmet": "^8.3.0"
+  },
+  "devDependencies": {
+    "wrangler": "^3.111.0"
+  }
+}
