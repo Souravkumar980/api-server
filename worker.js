@@ -223,6 +223,41 @@ export default {
       });
     }
 
+    // 3. Mandatory Client Key / Access Token Verification for ALL API Endpoints
+    // Prevents direct browser scraping, unauthorized URL inspection, or data exfiltration
+    if (path.startsWith('/api') || path.startsWith('/api/')) {
+      const appKey = request.headers.get('x-app-key') ||
+                     request.headers.get('x-client-key') ||
+                     request.headers.get('x-admin-key') ||
+                     url.searchParams.get('key') || '';
+
+      const authHeader = request.headers.get('authorization') || '';
+      const cleanAuth = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : authHeader.trim();
+
+      const validKeys = new Set([
+        'ep-client-v1-bharat-first-2024',
+        'JaiHindBharatMataKiJai2024!',
+        'Q0gng04bk3',
+        env?.ADMIN_KEY,
+        env?.APP_KEY
+      ].filter(Boolean));
+
+      const isClientValid = validKeys.has(appKey) || validKeys.has(cleanAuth) ||
+                            appKey.startsWith('ep-adm-') || cleanAuth.startsWith('ep-adm-') ||
+                            isAuthorizedAdmin(request);
+
+      if (!isClientValid) {
+        return new Response(JSON.stringify({
+          error: 'UNAUTHORIZED_API_ACCESS',
+          status: 401,
+          message: 'Direct manual access denied. A valid client key (X-App-Key header or ?key= param) is required to access Exposed Propagandus API services.'
+        }), {
+          status: 401,
+          headers: JSON_HEADERS
+        });
+      }
+    }
+
     // -------------------------------------------------------------
     // REAL-TIME SERVER-SENT EVENTS (SSE) STREAM
     // -------------------------------------------------------------
