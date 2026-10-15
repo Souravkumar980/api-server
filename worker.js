@@ -448,10 +448,13 @@ export default {
 
           const notifId = 'notif_chan_' + Date.now();
           const notifMsg = `@${username || 'user'} (${name || 'Citizen'}) requested to participate in your private channel "${chan.name}"`;
+          const creatorUser = await env.DB.prepare('SELECT id, username FROM community_users WHERE id = ?').bind(chan.creator_id).first();
+          const creatorUname = String(creatorUser ? creatorUser.username : (chan.creator_username || '')).toLowerCase();
+
           await env.DB.prepare(`
             INSERT INTO community_notifications (id, recipient_username, sender_username, sender_name, message, is_read, type, channel_id, requester_id, created_at)
             VALUES (?, ?, ?, ?, ?, 0, 'channel_request', ?, ?, ?)
-          `).bind(notifId, String(chan.creator_username || '').toLowerCase(), username || 'user', name || 'Citizen', notifMsg, chanId, user_id, nowTime).run();
+          `).bind(notifId, creatorUname, username || 'user', name || 'Citizen', notifMsg, chanId, user_id, nowTime).run();
         } else {
           chan = memoryState.channels.find(c => c.id === chanId);
           if (!chan) return new Response(JSON.stringify({ error: 'Channel not found.' }), { status: 404, headers: JSON_HEADERS });
@@ -491,6 +494,17 @@ export default {
           if (!members.includes(participant_user_id)) members.push(participant_user_id);
           requests = requests.filter(r => r.user_id !== participant_user_id);
           await env.DB.prepare('UPDATE community_channels SET members = ?, pending_requests = ? WHERE id = ?').bind(JSON.stringify(members), JSON.stringify(requests), chanId).run();
+
+          const targetUser = await env.DB.prepare('SELECT username FROM community_users WHERE id = ?').bind(participant_user_id).first();
+          if (targetUser) {
+            const notifId = 'notif_adm_' + Date.now();
+            const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const admitMsg = `✓ You have been approved to join private channel "${chan.name}"!`;
+            await env.DB.prepare(`
+              INSERT INTO community_notifications (id, recipient_username, sender_username, sender_name, message, is_read, type, channel_id, requester_id, created_at)
+              VALUES (?, ?, ?, ?, ?, 0, 'channel_admit', ?, ?, ?)
+            `).bind(notifId, targetUser.username.toLowerCase(), chan.creator_username, chan.creator_name, admitMsg, chanId, participant_user_id, nowTime).run();
+          }
         } else {
           const chan = memoryState.channels.find(c => c.id === chanId);
           if (!chan) return new Response(JSON.stringify({ error: 'Channel not found.' }), { status: 404, headers: JSON_HEADERS });
@@ -573,6 +587,65 @@ export default {
       } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
       }
+    }
+
+    // -------------------------------------------------------------
+    // COMMUNITY: FILE & MEDIA UPLOAD / SERVING
+    // -------------------------------------------------------------
+    if (path === '/api/community/upload' && request.method === 'POST') {
+      try {
+        const body = await request.json();
+        const { filename, data, mimeType } = body;
+        if (!data) return new Response(JSON.stringify({ error: 'No data provided' }), { status: 400, headers: JSON_HEADERS });
+
+        const safeExt = (mimeType?.split('/')[1] || filename?.split('.').pop() || 'bin').replace(/[^a-zA-Z0-9]/g, '').slice(0, 8);
+        const uniqueName = 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.' + safeExt;
+
+        if (env.DB) {
+          try {
+            await env.DB.prepare(`
+              INSERT OR REPLACE INTO community_files (filename, mime_type, data, size_kb, created_at)
+              VALUES (?, ?, ?, ?, ?)
+            `).bind(uniqueName, mimeType || 'application/octet-stream', data, (data.length / 1024).toFixed(0), new Date().toISOString()).run();
+          } catch (e) {}
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          url: `/api/community/files/${uniqueName}`,
+          filename: uniqueName,
+          originalName: filename || uniqueName,
+          size: (data.length / 1024).toFixed(0) + ' KB'
+        }), { headers: JSON_HEADERS });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
+      }
+    }
+
+    if (path.startsWith('/api/community/files/') && request.method === 'GET') {
+      const fileName = path.split('/')[4];
+      if (env.DB) {
+        try {
+          const row = await env.DB.prepare('SELECT mime_type, data FROM community_files WHERE filename = ?').bind(fileName).first();
+          if (row && row.data) {
+            let buffer;
+            if (row.data.startsWith('data:')) {
+              const commaIdx = row.data.indexOf(',');
+              buffer = Uint8Array.from(atob(row.data.slice(commaIdx + 1)), c => c.charCodeAt(0));
+            } else {
+              buffer = Uint8Array.from(atob(row.data), c => c.charCodeAt(0));
+            }
+            return new Response(buffer, {
+              headers: {
+                ...CORS_HEADERS,
+                'Content-Type': row.mime_type || 'application/octet-stream',
+                'Cache-Control': 'public, max-age=31536000, immutable'
+              }
+            });
+          }
+        } catch (e) {}
+      }
+      return new Response('File not found', { status: 404, headers: CORS_HEADERS });
     }
 
     // -------------------------------------------------------------

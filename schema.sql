@@ -82,6 +82,14 @@ CREATE TABLE IF NOT EXISTS community_contact_queries (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS community_files (
+  filename TEXT PRIMARY KEY,
+  mime_type TEXT,
+  data TEXT,
+  size_kb TEXT,
+  created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS entities (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
