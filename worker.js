@@ -83,6 +83,16 @@ const memoryState = {
     title: '',
     message: '',
     type: 'info'
+  },
+  spotlight: {
+    type: 'off',
+    title: '',
+    videoUrl: '',
+    channelName: '',
+    channelUrl: '',
+    imageUrl: '',
+    imageCaption: '',
+    updatedAt: ''
   }
 };
 
@@ -713,25 +723,39 @@ export default {
     if (path === '/api/community/register' && request.method === 'POST') {
       try {
         const body = await request.json();
-        const { name, username, email, phone, password } = body;
+        let { name, username, email, phone, password, avatar_url } = body;
 
-        if (!name || !username || !email || !password) {
-          return new Response(JSON.stringify({ error: 'Missing required registration fields' }), { status: 400, headers: JSON_HEADERS });
+        if (!name || !email || !password) {
+          return new Response(JSON.stringify({ error: 'Name, email, and password are required' }), { status: 400, headers: JSON_HEADERS });
         }
 
-        const cleanUser = username.trim().toLowerCase();
+        const cleanEmail = String(email).trim().toLowerCase();
+        if (!cleanEmail.endsWith('@gmail.com') && !cleanEmail.endsWith('@outlook.com')) {
+          return new Response(JSON.stringify({ error: 'Only @gmail.com and @outlook.com are permitted.' }), { status: 400, headers: JSON_HEADERS });
+        }
+
+        if (memoryState.users.some(u => u.email.toLowerCase() === cleanEmail)) {
+          return new Response(JSON.stringify({ error: 'An account with this email address already exists. Please log in.' }), { status: 400, headers: JSON_HEADERS });
+        }
+
+        if (!username) {
+          const cleanBase = name.trim().toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8) || 'citizen';
+          username = `${cleanBase}_${Math.floor(1000 + Math.random() * 9000)}`;
+        }
+
+        let cleanUser = username.trim().toLowerCase();
         if (PROTECTED_USERNAMES_REGEX.test(cleanUser)) {
-          return new Response(JSON.stringify({ error: 'Username is reserved by administrative policy.' }), { status: 400, headers: JSON_HEADERS });
+          cleanUser = `citizen_${Math.floor(1000 + Math.random() * 9000)}`;
         }
 
         const newUser = {
           id: 'usr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
           name: name.trim(),
           username: cleanUser,
-          email: email.trim().toLowerCase(),
-          phone: phone ? phone.trim() : null,
+          email: cleanEmail,
+          phone: phone ? String(phone).trim() : null,
           password_hash: password,
-          avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanUser)}`,
+          avatar_url: avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanUser)}`,
           verified_type: 'none',
           ip_address: clientIp,
           is_admin: 0,
@@ -1064,20 +1088,48 @@ export default {
     if (path === '/api/admin/live-traffic' && request.method === 'GET') {
       const activeCount = memoryState.sseWriters.size;
       const totalVisits = memoryState.trafficLogs.length;
-      const uniqueVisits = new Set(memoryState.trafficLogs.map(l => l.ip)).size;
 
-      const mobiles = memoryState.trafficLogs.filter(l => l.deviceType === 'mobile').length;
-      const desktops = totalVisits - mobiles;
-      const mobilePct = totalVisits > 0 ? Math.round((mobiles / totalVisits) * 100) : 0;
-      const desktopPct = totalVisits > 0 ? (100 - mobilePct) : 0;
+      const ipMap = new Map();
+      for (const log of memoryState.trafficLogs) {
+        if (!log || !log.ip) continue;
+        const logTime = log.timestamp || log.created_at || new Date().toISOString();
+        if (!ipMap.has(log.ip)) {
+          ipMap.set(log.ip, {
+            ip: log.ip,
+            device_type: log.deviceType || (log.userAgent && /mobile|android|iphone/i.test(log.userAgent) ? 'Mobile' : 'Desktop'),
+            os: log.os || 'OS',
+            browser: log.browser || 'Browser',
+            current_page: log.page || 'Homepage',
+            visit_count: 1,
+            first_visited: logTime,
+            last_seen: logTime,
+            is_online: Date.now() - new Date(logTime).getTime() < 180000,
+            is_blocked: memoryState.blockedIps.has(log.ip)
+          });
+        } else {
+          const existing = ipMap.get(log.ip);
+          existing.visit_count += 1;
+          if (new Date(logTime) > new Date(existing.last_seen)) {
+            existing.last_seen = logTime;
+            existing.current_page = log.page || existing.current_page;
+            existing.is_online = Date.now() - new Date(logTime).getTime() < 180000;
+          }
+        }
+      }
+      const uniqueVisitors = Array.from(ipMap.values()).sort((a, b) => new Date(b.last_seen) - new Date(a.last_seen));
+
+      const mobiles = uniqueVisitors.filter(l => l.device_type === 'Mobile' || l.device_type === 'mobile').length;
+      const desktops = uniqueVisitors.length - mobiles;
+      const mobilePct = uniqueVisitors.length > 0 ? Math.round((mobiles / uniqueVisitors.length) * 100) : 0;
+      const desktopPct = uniqueVisitors.length > 0 ? (100 - mobilePct) : 0;
 
       const data = {
         totalVisits: totalVisits,
-        totalUniqueVisitors: uniqueVisits,
+        totalUniqueVisitors: uniqueVisitors.length,
         activeNow: activeCount,
         liveCount: activeCount,
         deviceBreakdown: { mobile: mobilePct, desktop: desktopPct, tablet: 0 },
-        visitors: memoryState.trafficLogs.slice(0, 50),
+        visitors: uniqueVisitors.slice(0, 50),
         recentLogs: memoryState.activityLogs.slice(0, 50)
       };
       return new Response(JSON.stringify(data), { headers: JSON_HEADERS });
@@ -1132,26 +1184,57 @@ export default {
     // CITIZEN GOVT POLL 2029
     // -------------------------------------------------------------
     if (path === '/api/govt-poll' && request.method === 'GET') {
-      return new Response(JSON.stringify(memoryState.govtPoll), { headers: JSON_HEADERS });
+      const userVoted = memoryState.pollVotes['bjp_2029:' + clientIp] || null;
+      return new Response(JSON.stringify({
+        ...memoryState.govtPoll,
+        userVoted
+      }), { headers: JSON_HEADERS });
     }
 
     if (path === '/api/govt-poll/vote' && request.method === 'POST') {
       try {
         const body = await request.json().catch(() => ({}));
         const { choice } = body;
-
-        if (choice === 'yes') {
-          memoryState.govtPoll.yesVotes += 1;
-        } else if (choice === 'no') {
-          memoryState.govtPoll.noVotes += 1;
+        if (!choice || !['yes', 'no'].includes(choice)) {
+          return new Response(JSON.stringify({ error: 'Invalid choice. Must be yes or no.' }), { status: 400, headers: JSON_HEADERS });
         }
+
+        const voteKey = 'bjp_2029:' + clientIp;
+        const previousChoice = memoryState.pollVotes[voteKey];
+
+        if (previousChoice) {
+          if (previousChoice !== choice) {
+            if (previousChoice === 'yes' && choice === 'no') {
+              memoryState.govtPoll.yesVotes = Math.max(0, memoryState.govtPoll.yesVotes - 1);
+              memoryState.govtPoll.noVotes += 1;
+            } else if (previousChoice === 'no' && choice === 'yes') {
+              memoryState.govtPoll.noVotes = Math.max(0, memoryState.govtPoll.noVotes - 1);
+              memoryState.govtPoll.yesVotes += 1;
+            }
+            memoryState.pollVotes[voteKey] = choice;
+          }
+        } else {
+          if (choice === 'yes') {
+            memoryState.govtPoll.yesVotes += 1;
+          } else if (choice === 'no') {
+            memoryState.govtPoll.noVotes += 1;
+          }
+          memoryState.pollVotes[voteKey] = choice;
+        }
+
         memoryState.govtPoll.totalVotes = memoryState.govtPoll.yesVotes + memoryState.govtPoll.noVotes;
-        memoryState.govtPoll.yesPercent = Math.round((memoryState.govtPoll.yesVotes / memoryState.govtPoll.totalVotes) * 100);
-        memoryState.govtPoll.noPercent = 100 - memoryState.govtPoll.yesPercent;
+        memoryState.govtPoll.yesPercent = memoryState.govtPoll.totalVotes > 0
+          ? Math.round((memoryState.govtPoll.yesVotes / memoryState.govtPoll.totalVotes) * 100)
+          : 0;
+        memoryState.govtPoll.noPercent = memoryState.govtPoll.totalVotes > 0
+          ? (100 - memoryState.govtPoll.yesPercent)
+          : 0;
 
         return new Response(JSON.stringify({
           ...memoryState.govtPoll,
-          userVoted: choice
+          userVoted: choice,
+          userChoice: choice,
+          success: true
         }), { headers: JSON_HEADERS });
       } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
@@ -1619,8 +1702,23 @@ export default {
     }
 
     if (path === '/api/spotlight' && request.method === 'GET') {
-      const spot = memoryState.entities[0] || null;
-      return new Response(JSON.stringify({ entity: spot }), { headers: JSON_HEADERS });
+      return new Response(JSON.stringify(memoryState.spotlight || { type: 'off' }), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/admin/spotlight' && (request.method === 'POST' || request.method === 'PUT')) {
+      if (!isAuthorizedAdmin(request)) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      const b = await request.json().catch(() => ({}));
+      memoryState.spotlight = {
+        type: ['video', 'image', 'off'].includes(b.type) ? b.type : 'off',
+        title: (b.title || '').trim(),
+        videoUrl: (b.videoUrl || '').trim(),
+        channelName: (b.channelName || '').trim(),
+        channelUrl: (b.channelUrl || '').trim(),
+        imageUrl: (b.imageUrl || '').trim(),
+        imageCaption: (b.imageCaption || '').trim(),
+        updatedAt: new Date().toISOString()
+      };
+      return new Response(JSON.stringify({ success: true, spotlight: memoryState.spotlight }), { headers: JSON_HEADERS });
     }
 
     if (path === '/api/posts' && request.method === 'GET') {
@@ -1788,7 +1886,8 @@ export default {
         posts: memoryState.posts,
         reports: memoryState.reports,
         bulletin: memoryState.bulletin,
-        govtPoll: memoryState.govtPoll
+        govtPoll: memoryState.govtPoll,
+        spotlight: memoryState.spotlight
       };
       return new Response(JSON.stringify(dump, null, 2), {
         headers: {
@@ -1811,6 +1910,7 @@ export default {
         if (data.reports) memoryState.reports = data.reports;
         if (data.bulletin) memoryState.bulletin = data.bulletin;
         if (data.govtPoll) memoryState.govtPoll = data.govtPoll;
+        if (data.spotlight) memoryState.spotlight = data.spotlight;
         return new Response(JSON.stringify({ success: true, message: 'Database state restored successfully.' }), { headers: JSON_HEADERS });
       } catch (e) {
         return new Response(JSON.stringify({ error: 'Invalid restore data' }), { status: 400, headers: JSON_HEADERS });
