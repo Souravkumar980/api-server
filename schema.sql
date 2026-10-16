@@ -1,280 +1,359 @@
 -- ===================================================================
--- Cloudflare D1 / SQLite Database Schema
--- File: schema.sql
--- Compatible with Cloudflare D1, SQLite 3, and Local Node Server
+-- EXPOSED PROPAGANDUS - Official MySQL Database Schema (Zero Pre-Written Data)
+-- File: upload.sql
+-- Target Database: if0_37976074_exposedpropagandus
+-- Host: sql200.infinityfree.com (or local MySQL / phpMyAdmin import)
+-- Bharat Mata ki Jai 🇮🇳
+-- All tables start completely at 0 / empty (Admin Credentials only)
 -- ===================================================================
 
-CREATE TABLE IF NOT EXISTS community_users (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  username TEXT UNIQUE NOT NULL,
-  email TEXT UNIQUE NOT NULL,
-  phone TEXT,
-  password_hash TEXT NOT NULL,
-  avatar_url TEXT,
-  verified_type TEXT DEFAULT 'none',
-  ip_address TEXT,
-  is_admin INTEGER DEFAULT 0,
-  is_banned INTEGER DEFAULT 0,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS community_messages (
-  id TEXT PRIMARY KEY,
-  channel_id TEXT NOT NULL,
-  user_id TEXT NOT NULL,
-  user_name TEXT NOT NULL,
-  username TEXT NOT NULL,
-  user_avatar TEXT,
-  verified_type TEXT DEFAULT 'none',
-  content TEXT,
-  attachments TEXT,
-  media_links TEXT,
-  gif_url TEXT,
-  reactions TEXT DEFAULT '{}',
-  reply_to TEXT,
-  is_deleted INTEGER DEFAULT 0,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS community_channels (
-  id TEXT PRIMARY KEY,
-  creator_id TEXT NOT NULL,
-  creator_name TEXT NOT NULL,
-  creator_username TEXT NOT NULL,
-  name TEXT NOT NULL,
-  description TEXT,
-  join_token TEXT UNIQUE,
-  is_private INTEGER DEFAULT 1,
-  members TEXT DEFAULT '[]',
-  pending_requests TEXT DEFAULT '[]',
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS community_notifications (
-  id TEXT PRIMARY KEY,
-  recipient_username TEXT NOT NULL,
-  sender_username TEXT NOT NULL,
-  sender_name TEXT NOT NULL,
-  message TEXT NOT NULL,
-  is_read INTEGER DEFAULT 0,
-  type TEXT DEFAULT 'mention',
-  channel_id TEXT,
-  requester_id TEXT,
-  dm_user_id TEXT,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS community_contact_queries (
-  id TEXT PRIMARY KEY,
-  type TEXT NOT NULL,
-  name TEXT NOT NULL,
-  email TEXT,
-  user_id TEXT,
-  username TEXT,
-  social_account_id TEXT,
-  message TEXT NOT NULL,
-  proof_file_name TEXT,
-  proof_file TEXT,
-  ip TEXT,
-  status TEXT DEFAULT 'pending',
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS community_files (
-  filename TEXT PRIMARY KEY,
-  mime_type TEXT,
-  data TEXT,
-  size_kb TEXT,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS entities (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  handle_x TEXT,
-  handle_yt TEXT,
-  handle_insta TEXT,
-  contact_phone TEXT,
-  contact_email TEXT,
-  other_links TEXT,
-  avatar_url TEXT,
-  categories TEXT NOT NULL,
-  party TEXT,
-  institution TEXT,
-  narrative TEXT NOT NULL,
-  fact_check TEXT,
-  proof_url TEXT,
-  upvotes INTEGER DEFAULT 0,
-  is_verified INTEGER DEFAULT 1,
-  submitted_by_ip TEXT,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS nationalist_influencers (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  handle_x TEXT,
-  handle_yt TEXT,
-  handle_insta TEXT,
-  other_links TEXT,
-  avatar_url TEXT,
-  category TEXT DEFAULT 'Nationalist Creator',
-  description TEXT NOT NULL,
-  status TEXT DEFAULT 'pending',
-  is_verified INTEGER DEFAULT 1,
-  submitted_by_ip TEXT,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS posts (
-  id TEXT PRIMARY KEY,
-  title TEXT NOT NULL,
-  content TEXT NOT NULL,
-  image_url TEXT,
-  badge TEXT DEFAULT '🚨 BREAKING ALERT',
-  is_pinned INTEGER DEFAULT 0,
-  likes INTEGER DEFAULT 0,
-  views INTEGER DEFAULT 0,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS blocked_ips (
-  ip TEXT PRIMARY KEY,
-  reason TEXT,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS votes (
-  id TEXT PRIMARY KEY,
-  entity_id TEXT NOT NULL,
-  ip_address TEXT NOT NULL,
-  vote_type TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS poll_votes (
-  id TEXT PRIMARY KEY,
-  poll_id TEXT NOT NULL,
-  option_id TEXT NOT NULL,
-  ip_address TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS visit_traffic (
-  id TEXT PRIMARY KEY,
-  ip TEXT NOT NULL,
-  page TEXT NOT NULL,
-  user_agent TEXT,
-  country TEXT,
-  created_at TEXT NOT NULL
-);
+SET FOREIGN_KEY_CHECKS = 0;
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET time_zone = "+05:30";
 
 -- -------------------------------------------------------------
--- Admin Users Table (For Admin Panel Authentication)
+-- Table: entities (Tracked Propagandus Profiles) - Starts at 0
 -- -------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS admin_users (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  role TEXT DEFAULT 'superadmin',
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
--- Seed Master Admin into admin_users
-INSERT OR IGNORE INTO admin_users (
-  id, name, email, password_hash, role, created_at, updated_at
-) VALUES (
-  'admin-primary', 'Om Kumar', 'omkumar.working@gmail.com', 'Q0gng04bk3', 'superadmin', '2026-10-15T00:00:00.000Z', '2026-10-15T00:00:00.000Z'
-);
-
--- -------------------------------------------------------------
--- Reports Table (User Submissions & Flags to Admin)
--- -------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS reports (
-  id TEXT PRIMARY KEY,
-  entity_id TEXT,
-  entity_name TEXT,
-  report_type TEXT NOT NULL,
-  message TEXT NOT NULL,
-  status TEXT DEFAULT 'pending',
-  reported_by_ip TEXT,
-  created_at TEXT NOT NULL
-);
+DROP TABLE IF EXISTS `entities`;
+CREATE TABLE `entities` (
+  `id` VARCHAR(100) NOT NULL,
+  `name` VARCHAR(255) NOT NULL,
+  `handle_x` VARCHAR(100) DEFAULT NULL,
+  `handle_yt` VARCHAR(100) DEFAULT NULL,
+  `handle_insta` VARCHAR(100) DEFAULT NULL,
+  `contact_phone` VARCHAR(50) DEFAULT NULL,
+  `contact_email` VARCHAR(255) DEFAULT NULL,
+  `other_links` TEXT DEFAULT NULL,
+  `avatar_url` TEXT DEFAULT NULL,
+  `categories` TEXT NOT NULL,
+  `party` VARCHAR(255) DEFAULT NULL,
+  `institution` VARCHAR(255) DEFAULT NULL,
+  `narrative` TEXT NOT NULL,
+  `fact_check` TEXT DEFAULT NULL,
+  `proof_url` TEXT DEFAULT NULL,
+  `upvotes` INT NOT NULL DEFAULT 0,
+  `is_verified` TINYINT(1) NOT NULL DEFAULT 1,
+  `submitted_by_ip` VARCHAR(64) DEFAULT NULL,
+  `created_at` VARCHAR(64) NOT NULL,
+  `updated_at` VARCHAR(64) NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `idx_entities_upvotes` (`upvotes`),
+  INDEX `idx_entities_party` (`party`),
+  INDEX `idx_entities_institution` (`institution`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -------------------------------------------------------------
--- Blocked Attempts (Hostile Blacklist Attempts on National Figures)
+-- Table: nationalist_influencers (Nationalist Creators) - Starts at 0
 -- -------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS blocked_attempts (
-  id TEXT PRIMARY KEY,
-  ip TEXT NOT NULL,
-  attempted_name TEXT,
-  details TEXT,
-  created_at TEXT NOT NULL
-);
+DROP TABLE IF EXISTS `nationalist_influencers`;
+CREATE TABLE `nationalist_influencers` (
+  `id` VARCHAR(100) NOT NULL,
+  `name` VARCHAR(255) NOT NULL,
+  `handle_x` VARCHAR(100) DEFAULT NULL,
+  `handle_yt` VARCHAR(100) DEFAULT NULL,
+  `handle_insta` VARCHAR(100) DEFAULT NULL,
+  `other_links` TEXT DEFAULT NULL,
+  `avatar_url` TEXT DEFAULT NULL,
+  `category` VARCHAR(150) DEFAULT 'Nationalist Creator',
+  `description` TEXT NOT NULL,
+  `status` VARCHAR(50) NOT NULL DEFAULT 'pending',
+  `is_verified` TINYINT(1) NOT NULL DEFAULT 1,
+  `upvotes` INT NOT NULL DEFAULT 0,
+  `created_at` VARCHAR(64) NOT NULL,
+  `updated_at` VARCHAR(64) NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `idx_nat_status` (`status`),
+  INDEX `idx_nat_upvotes` (`upvotes`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -------------------------------------------------------------
--- Activity Logs (Audit Trail for Administrative Actions)
+-- Table: submissions (Crowdsourced Submissions) - Starts at 0
 -- -------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS activity_logs (
-  id TEXT PRIMARY KEY,
-  action TEXT NOT NULL,
-  details TEXT,
-  ip TEXT,
-  created_at TEXT NOT NULL
-);
+DROP TABLE IF EXISTS `submissions`;
+CREATE TABLE `submissions` (
+  `id` VARCHAR(100) NOT NULL,
+  `name` VARCHAR(255) NOT NULL,
+  `handle_x` VARCHAR(100) DEFAULT NULL,
+  `handle_yt` VARCHAR(100) DEFAULT NULL,
+  `handle_insta` VARCHAR(100) DEFAULT NULL,
+  `categories` TEXT NOT NULL,
+  `party` VARCHAR(255) DEFAULT NULL,
+  `institution` VARCHAR(255) DEFAULT NULL,
+  `narrative` TEXT NOT NULL,
+  `proof_url` TEXT DEFAULT NULL,
+  `status` VARCHAR(50) NOT NULL DEFAULT 'pending',
+  `submitted_by_ip` VARCHAR(64) DEFAULT NULL,
+  `created_at` VARCHAR(64) NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `idx_submissions_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -------------------------------------------------------------
--- Announcements (Ticker & Banners)
+-- Table: reports (User Reports) - Starts at 0
 -- -------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS announcements (
-  id TEXT PRIMARY KEY,
-  content TEXT NOT NULL,
-  is_active INTEGER DEFAULT 1,
-  created_at TEXT NOT NULL
-);
+DROP TABLE IF EXISTS `reports`;
+CREATE TABLE `reports` (
+  `id` VARCHAR(100) NOT NULL,
+  `entity_id` VARCHAR(100) NOT NULL,
+  `reason` VARCHAR(255) NOT NULL,
+  `details` TEXT DEFAULT NULL,
+  `status` VARCHAR(50) NOT NULL DEFAULT 'pending',
+  `reported_by_ip` VARCHAR(64) DEFAULT NULL,
+  `created_at` VARCHAR(64) NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `idx_reports_entity` (`entity_id`),
+  INDEX `idx_reports_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -------------------------------------------------------------
--- Playlist Tracks (Patriotic Audio Player)
+-- Table: votes (1 Upvote per IP) - Starts at 0
 -- -------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS playlist_tracks (
-  id TEXT PRIMARY KEY,
-  title TEXT NOT NULL,
-  artist TEXT,
-  audio_url TEXT NOT NULL,
-  duration TEXT,
-  is_active INTEGER DEFAULT 1,
-  created_at TEXT NOT NULL
-);
+DROP TABLE IF EXISTS `votes`;
+CREATE TABLE `votes` (
+  `entity_id` VARCHAR(100) NOT NULL,
+  `ip` VARCHAR(64) NOT NULL,
+  `voted_at` VARCHAR(64) NOT NULL,
+  PRIMARY KEY (`entity_id`, `ip`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -------------------------------------------------------------
--- Site Categories
+-- Table: nationalist_votes (1 Upvote per IP) - Starts at 0
 -- -------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS site_categories (
-  id TEXT PRIMARY KEY,
-  name TEXT UNIQUE NOT NULL,
-  description TEXT,
-  color TEXT,
-  created_at TEXT NOT NULL
-);
+DROP TABLE IF EXISTS `nationalist_votes`;
+CREATE TABLE `nationalist_votes` (
+  `influencer_id` VARCHAR(100) NOT NULL,
+  `ip` VARCHAR(64) NOT NULL,
+  `voted_at` VARCHAR(64) NOT NULL,
+  PRIMARY KEY (`influencer_id`, `ip`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Seed Default Admin in Community Users
-INSERT OR IGNORE INTO community_users (
-  id, name, username, email, phone, password_hash, avatar_url, verified_type, ip_address, is_admin, is_banned, created_at, updated_at
-) VALUES (
-  'usr_admin_master', 'Om Kumar (Admin)', 'omkumar', 'omkumar.working@gmail.com', '+919999999999', 'Q0gng04bk3', 'https://api.dicebear.com/7.x/bottts/svg?seed=omkumar', 'influencer', '127.0.0.1', 1, 0, '2026-10-15T00:00:00.000Z', '2026-10-15T00:00:00.000Z'
-);
+-- -------------------------------------------------------------
+-- Table: govt_polls (2029 Citizen Mandate Poll) - Starts at 0 Votes
+-- -------------------------------------------------------------
+DROP TABLE IF EXISTS `govt_polls`;
+CREATE TABLE `govt_polls` (
+  `id` VARCHAR(50) NOT NULL,
+  `question` TEXT NOT NULL,
+  `yes_votes` INT NOT NULL DEFAULT 0,
+  `no_votes` INT NOT NULL DEFAULT 0,
+  `updated_at` VARCHAR(64) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Seed Public Community Welcome Message
-INSERT OR IGNORE INTO community_messages (
-  id, channel_id, user_id, user_name, username, user_avatar, verified_type, content, attachments, media_links, gif_url, reactions, reply_to, is_deleted, created_at
-) VALUES (
-  'msg_welcome_1', 'public', 'usr_admin_master', 'Om Kumar (Admin)', 'omkumar', 'https://api.dicebear.com/7.x/bottts/svg?seed=omkumar', 'influencer', '🇮🇳 Welcome to the Sovereign Citizen Community! Connect, speak truth, share insights, and organize freely. Jai Hind, Bharat Mata ki Jai! 🚩', '[]', '[]', NULL, '{"🇮🇳":[{"user_id":"usr_admin_master","username":"omkumar"}]}', NULL, 0, '05:30 AM'
-);
+INSERT INTO `govt_polls` (`id`, `question`, `yes_votes`, `no_votes`, `updated_at`)
+VALUES ('bjp_2029', 'Do you want BJP / NDA back in 2029?', 0, 0, '2026-10-16T00:00:00.000Z')
+ON DUPLICATE KEY UPDATE `yes_votes` = 0, `no_votes` = 0, `updated_at` = VALUES(`updated_at`);
 
+-- -------------------------------------------------------------
+-- Table: govt_poll_votes (1 Vote per IP) - Starts at 0
+-- -------------------------------------------------------------
+DROP TABLE IF EXISTS `govt_poll_votes`;
+CREATE TABLE `govt_poll_votes` (
+  `poll_id` VARCHAR(50) NOT NULL,
+  `ip` VARCHAR(64) NOT NULL,
+  `choice` VARCHAR(10) NOT NULL,
+  `voted_at` VARCHAR(64) NOT NULL,
+  PRIMARY KEY (`poll_id`, `ip`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -------------------------------------------------------------
+-- Table: system_settings (System Configuration) - Clean initial state
+-- -------------------------------------------------------------
+DROP TABLE IF EXISTS `system_settings`;
+CREATE TABLE `system_settings` (
+  `key` VARCHAR(100) NOT NULL,
+  `value` LONGTEXT NOT NULL,
+  `updated_at` VARCHAR(64) NOT NULL,
+  PRIMARY KEY (`key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `system_settings` (`key`, `value`, `updated_at`)
+VALUES 
+  ('spotlight_media', '{"type":"off","title":"","videoUrl":"","channelName":"","channelUrl":"","imageUrl":"","imageCaption":""}', '2026-10-16T00:00:00.000Z'),
+  ('nationalist_bulletin', '{"is_active":0,"title":"","message":"","link":""}', '2026-10-16T00:00:00.000Z')
+ON DUPLICATE KEY UPDATE `value` = VALUES(`value`);
+
+-- -------------------------------------------------------------
+-- Table: admin_users (Super Admin Credentials)
+-- -------------------------------------------------------------
+DROP TABLE IF EXISTS `admin_users`;
+CREATE TABLE `admin_users` (
+  `id` VARCHAR(50) NOT NULL,
+  `email` VARCHAR(255) NOT NULL,
+  `password_hash` VARCHAR(255) NOT NULL,
+  `created_at` VARCHAR(64) NOT NULL,
+  `updated_at` VARCHAR(64) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_admin_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `admin_users` (`id`, `email`, `password_hash`, `created_at`, `updated_at`)
+VALUES ('admin-primary', 'omkumar.working@gmail.com', 'Q0gng04bk3', '2026-10-16T00:00:00.000Z', '2026-10-16T00:00:00.000Z')
+ON DUPLICATE KEY UPDATE `email` = VALUES(`email`), `password_hash` = VALUES(`password_hash`);
+
+-- -------------------------------------------------------------
+-- Table: playlist_tracks (Music & Audio Tracks) - Starts at 0
+-- -------------------------------------------------------------
+DROP TABLE IF EXISTS `playlist_tracks`;
+CREATE TABLE `playlist_tracks` (
+  `id` VARCHAR(100) NOT NULL,
+  `title` VARCHAR(255) NOT NULL,
+  `video_id` VARCHAR(64) NOT NULL,
+  `author` VARCHAR(255) DEFAULT NULL,
+  `thumbnail_url` TEXT DEFAULT NULL,
+  `duration` VARCHAR(50) DEFAULT NULL,
+  `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+  `sort_order` INT NOT NULL DEFAULT 0,
+  `created_at` VARCHAR(64) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -------------------------------------------------------------
+-- Table: site_categories (Categories for Directory)
+-- -------------------------------------------------------------
+DROP TABLE IF EXISTS `site_categories`;
+CREATE TABLE `site_categories` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `type` VARCHAR(50) NOT NULL,
+  `name` VARCHAR(150) NOT NULL,
+  `created_at` VARCHAR(64) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -------------------------------------------------------------
+-- Table: admin_posts (Admin Bulletins & Dispatches) - Starts at 0
+-- -------------------------------------------------------------
+DROP TABLE IF EXISTS `admin_posts`;
+CREATE TABLE `admin_posts` (
+  `id` VARCHAR(100) NOT NULL,
+  `title` VARCHAR(255) NOT NULL,
+  `content` TEXT NOT NULL,
+  `image_url` TEXT DEFAULT NULL,
+  `badge` VARCHAR(100) DEFAULT 'DISPATCH',
+  `is_pinned` TINYINT(1) NOT NULL DEFAULT 0,
+  `likes` INT NOT NULL DEFAULT 0,
+  `views` INT NOT NULL DEFAULT 0,
+  `created_at` VARCHAR(64) NOT NULL,
+  `updated_at` VARCHAR(64) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -------------------------------------------------------------
+-- Table: comparisons (Comparison Cards) - Starts at 0
+-- -------------------------------------------------------------
+DROP TABLE IF EXISTS `comparisons`;
+CREATE TABLE `comparisons` (
+  `id` VARCHAR(50) NOT NULL,
+  `category` VARCHAR(100) NOT NULL,
+  `title` VARCHAR(255) NOT NULL,
+  `upa_period` VARCHAR(100) DEFAULT '2004 - 2014 (UPA)',
+  `upa_value` VARCHAR(255) NOT NULL,
+  `upa_details` TEXT,
+  `nda_period` VARCHAR(100) DEFAULT '2014 - Present (NDA)',
+  `nda_value` VARCHAR(255) NOT NULL,
+  `nda_details` TEXT,
+  `growth_badge` VARCHAR(100) DEFAULT NULL,
+  `source` VARCHAR(255) DEFAULT NULL,
+  `icon` VARCHAR(50) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -------------------------------------------------------------
+-- Table: community_users (Patriotic Community Users)
+-- Only Master Admin Om Kumar pre-seeded so admin can manage
+-- -------------------------------------------------------------
+DROP TABLE IF EXISTS `community_users`;
+CREATE TABLE `community_users` (
+  `id` VARCHAR(100) NOT NULL,
+  `name` VARCHAR(255) NOT NULL,
+  `username` VARCHAR(100) NOT NULL,
+  `email` VARCHAR(255) NOT NULL,
+  `phone` VARCHAR(50) NOT NULL,
+  `password_hash` VARCHAR(255) NOT NULL,
+  `avatar_url` TEXT DEFAULT NULL,
+  `verified_type` VARCHAR(50) NOT NULL DEFAULT 'none',
+  `ip_address` VARCHAR(64) DEFAULT NULL,
+  `is_admin` TINYINT(1) NOT NULL DEFAULT 0,
+  `is_banned` TINYINT(1) NOT NULL DEFAULT 0,
+  `created_at` VARCHAR(64) NOT NULL,
+  `updated_at` VARCHAR(64) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_comm_username` (`username`),
+  UNIQUE KEY `idx_comm_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `community_users` (`id`, `name`, `username`, `email`, `phone`, `password_hash`, `avatar_url`, `verified_type`, `is_admin`, `is_banned`, `created_at`, `updated_at`)
+VALUES ('usr_admin', 'Om Kumar (Admin)', 'omkumar_admin', 'omkumar.working@gmail.com', '9876543210', 'Q0gng04bk3', 'https://api.dicebear.com/7.x/bottts/svg?seed=OmKumarAdmin', 'influencer', 1, 0, '2026-10-16 00:00:00', '2026-10-16 00:00:00')
+ON DUPLICATE KEY UPDATE `is_admin` = 1, `password_hash` = VALUES(`password_hash`);
+
+-- -------------------------------------------------------------
+-- Table: community_messages (Chat Messages) - Starts at 0
+-- -------------------------------------------------------------
+DROP TABLE IF EXISTS `community_messages`;
+CREATE TABLE `community_messages` (
+  `id` VARCHAR(100) NOT NULL,
+  `channel_id` VARCHAR(100) NOT NULL DEFAULT 'public',
+  `user_id` VARCHAR(100) NOT NULL,
+  `user_name` VARCHAR(255) NOT NULL,
+  `username` VARCHAR(100) NOT NULL,
+  `user_avatar` TEXT DEFAULT NULL,
+  `verified_type` VARCHAR(50) NOT NULL DEFAULT 'none',
+  `content` TEXT NOT NULL,
+  `attachments` MEDIUMTEXT DEFAULT NULL,
+  `media_links` TEXT DEFAULT NULL,
+  `gif_url` TEXT DEFAULT NULL,
+  `reactions` TEXT DEFAULT NULL,
+  `reply_to` TEXT DEFAULT NULL,
+  `is_deleted` TINYINT(1) NOT NULL DEFAULT 0,
+  `created_at` VARCHAR(64) NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `idx_comm_channel` (`channel_id`),
+  INDEX `idx_comm_msg_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -------------------------------------------------------------
+-- Table: community_channels (Private Channels) - Starts at 0
+-- -------------------------------------------------------------
+DROP TABLE IF EXISTS `community_channels`;
+CREATE TABLE `community_channels` (
+  `id` VARCHAR(100) NOT NULL,
+  `creator_id` VARCHAR(100) NOT NULL,
+  `creator_name` VARCHAR(255) NOT NULL,
+  `creator_username` VARCHAR(100) NOT NULL,
+  `name` VARCHAR(255) NOT NULL,
+  `description` TEXT DEFAULT NULL,
+  `join_token` VARCHAR(100) NOT NULL,
+  `is_private` TINYINT(1) NOT NULL DEFAULT 1,
+  `members` TEXT DEFAULT NULL,
+  `pending_requests` TEXT DEFAULT NULL,
+  `created_at` VARCHAR(64) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_comm_join_token` (`join_token`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -------------------------------------------------------------
+-- Table: blocked_ips (Security Shield Blocklist) - Starts at 0
+-- -------------------------------------------------------------
+DROP TABLE IF EXISTS `blocked_ips`;
+CREATE TABLE `blocked_ips` (
+  `ip` VARCHAR(64) NOT NULL,
+  `reason` VARCHAR(255) NOT NULL,
+  `blocked_at` VARCHAR(64) NOT NULL,
+  PRIMARY KEY (`ip`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -------------------------------------------------------------
+-- Table: traffic_logs (Real Visited Traffic Only) - Starts at 0
+-- -------------------------------------------------------------
+DROP TABLE IF EXISTS `traffic_logs`;
+CREATE TABLE `traffic_logs` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `ip` VARCHAR(64) NOT NULL,
+  `page` VARCHAR(255) NOT NULL,
+  `user_agent` TEXT DEFAULT NULL,
+  `referrer` TEXT DEFAULT NULL,
+  `city` VARCHAR(100) DEFAULT NULL,
+  `country` VARCHAR(100) DEFAULT NULL,
+  `created_at` VARCHAR(64) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET FOREIGN_KEY_CHECKS = 1;

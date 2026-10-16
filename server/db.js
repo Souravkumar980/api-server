@@ -285,6 +285,10 @@ db.exec(`
 
 try { db.prepare("ALTER TABLE community_messages ADD COLUMN reactions TEXT DEFAULT '{}'").run(); } catch(e) {}
 try { db.prepare("ALTER TABLE community_messages ADD COLUMN reply_to TEXT DEFAULT NULL").run(); } catch(e) {}
+try { db.prepare("ALTER TABLE community_notifications ADD COLUMN type TEXT DEFAULT 'mention'").run(); } catch(e) {}
+try { db.prepare("ALTER TABLE community_notifications ADD COLUMN channel_id TEXT DEFAULT NULL").run(); } catch(e) {}
+try { db.prepare("ALTER TABLE community_notifications ADD COLUMN requester_id TEXT DEFAULT NULL").run(); } catch(e) {}
+try { db.prepare("ALTER TABLE community_notifications ADD COLUMN dm_user_id TEXT DEFAULT NULL").run(); } catch(e) {}
 
 // Seed default Admin in community_users
 try {
@@ -388,7 +392,7 @@ try {
   }
 } catch (e) {}
 
-// Seed default Govt Poll (BJP 2029 Mandate)
+// Seed default Govt Poll (BJP 2029 Mandate) - Starts at 0 Votes
 const countPoll = db.prepare('SELECT COUNT(*) as count FROM govt_polls').get();
 if (countPoll.count === 0) {
   db.prepare(`
@@ -397,44 +401,9 @@ if (countPoll.count === 0) {
   `).run(
     'bjp_2029',
     'Do you want BJP / NDA back in 2029?',
-    28490,
-    3120,
-    new Date().toISOString()
-  );
-}
-
-
-// Seed initial Admin Posts if empty
-const countPosts = db.prepare('SELECT COUNT(*) as count FROM admin_posts').get();
-if (countPosts.count === 0) {
-  const insertPost = db.prepare(`
-    INSERT INTO admin_posts (id, title, content, image_url, badge, is_pinned, likes, views, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  const now = new Date().toISOString();
-  insertPost.run(
-    'post-1',
-    '🚨 Ground Intel: Toolkit Networks & Coordinated Disinformation Busted',
-    'Multiple synchronized handles originating from offshore proxies have been detected attempting to flood the directory with defaming entries against sovereign nationalist leadership. The automated anti-bot shield and honeypot traps have permanently blacklisted 42 hostile IP addresses within the last 24 hours. Rashtra Hit Sarvopari 🇮🇳.',
-    'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80',
-    '🚨 BREAKING ALERT',
-    1,
-    284,
-    1450,
-    now,
-    now
-  );
-  insertPost.run(
-    'post-2',
-    '🇮🇳 Special Fact Dispatch: India Crosses $21,000 Crore in Indigenous Defence Exports',
-    'Under NDA, India has transformed from the world\'s largest arms importer into a premier global defence exporter to over 85 nations. The induction of indigenous Tejas Mk1A, INS Vikrant, and BrahMos supersonic cruise missiles marks the permanent end of foreign dependency.',
-    'https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&w=1200&q=80',
-    '🇮🇳 NATIONAL DISPATCH',
     0,
-    419,
-    2310,
-    now,
-    now
+    0,
+    new Date().toISOString()
   );
 }
 

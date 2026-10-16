@@ -49,25 +49,7 @@ const memoryState = {
       created_at: new Date().toISOString()
     }
   ],
-  messages: [
-    {
-      id: 'msg_welcome_1',
-      channel_id: 'public',
-      user_id: 'usr_admin_master',
-      user_name: 'Om Kumar (Admin)',
-      username: 'omkumar',
-      user_avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=omkumar',
-      verified_type: 'influencer',
-      content: '🇮🇳 Welcome to the Sovereign Citizen Community! Connect, speak truth, share insights, and organize freely. Jai Hind, Bharat Mata ki Jai! 🚩',
-      attachments: [],
-      media_links: [],
-      gif_url: null,
-      reactions: { '🇮🇳': [{ user_id: 'usr_admin_master', username: 'omkumar' }] },
-      reply_to: null,
-      is_deleted: 0,
-      created_at: '05:30 AM'
-    }
-  ],
+  messages: [],
   channels: [],
   notifications: [],
   adminQueries: [],
@@ -76,125 +58,31 @@ const memoryState = {
   sseWriters: new Set(),
   files: new Map(),
   reports: [],
-  nationalists: [
-    {
-      id: 'nat-1',
-      name: 'Major Gaurav Arya',
-      handle_x: '@majorgauravarya',
-      handle_yt: 'TheChanakyaDialogues',
-      handle_insta: 'majorgauravarya',
-      category: 'National Security Analyst',
-      description: 'Veteran Indian Army officer dissecting strategic threats and national security affairs with unapologetic clarity.',
-      avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80',
-      status: 'approved',
-      is_verified: 1,
-      upvotes: 4820,
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 'nat-2',
-      name: 'Anand Ranganathan',
-      handle_x: '@ARanganathan72',
-      handle_yt: 'AnandRanganathanOfficial',
-      handle_insta: 'anandranganathan72',
-      category: 'Author & Scientist',
-      description: 'Scientist, author, and fierce orator fearlessly speaking truth to institutional bias.',
-      avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
-      status: 'approved',
-      is_verified: 1,
-      upvotes: 3950,
-      created_at: new Date().toISOString()
-    }
-  ],
-  entities: [
-    {
-      id: 'ent-demo-1',
-      name: 'Coordinated Toolkit Network',
-      handle_x: '@defame_bharat',
-      handle_yt: 'toolkitnews',
-      handle_insta: 'anti_bharat_front',
-      categories: 'Foreign Toolkit, Coordinated Disinformation',
-      party: 'Anti-India Lobby',
-      institution: 'Offshore Syndicate',
-      narrative: 'Manufacturing false riots and spreading deepfakes targeting Indian elections.',
-      fact_check: 'Debunked by verified intelligence and open-source forensic verification.',
-      proof_url: 'https://pib.gov.in/factcheck',
-      upvotes: 1420,
-      is_verified: 1,
-      created_at: new Date().toISOString()
-    }
-  ],
+  nationalists: [],
+  entities: [],
   shieldAttempts: [],
-  trafficLogs: [], // Pure real tracked visits only
-  activityLogs: [
-    {
-      id: 'log-1',
-      action: 'SERVER_BOOT',
-      details: 'Cloudflare Worker API Gateway initialized with Patriot Shield Protection.',
-      ip: '127.0.0.1',
-      created_at: new Date().toISOString()
-    }
-  ],
-  categories: [
-    { id: 'cat-1', name: 'Anti-National Narrative', description: 'Coordinated media attacking India sovereignty', color: '#ef4444', type: 'entity' },
-    { id: 'cat-2', name: 'Foreign Funded Toolkit', description: 'Offshore networks targeting Indian state institutions', color: '#f59e0b', type: 'entity' },
-    { id: 'cat-3', name: 'Deepfake & Disinformation', description: 'Manipulated media and cyber bots', color: '#8b5cf6', type: 'entity' },
-    { id: 'cat-4', name: 'National Security Analyst', description: 'Defence and strategic affairs commentators', color: '#10b981', type: 'nationalist' },
-    { id: 'cat-5', name: 'Cultural Historian', description: 'Uncovering civilizational heritage and history', color: '#f97316', type: 'nationalist' }
-  ],
-  playlist: [
-    {
-      id: 'track-1',
-      title: 'Vande Mataram — Sovereign Anthems',
-      artist: 'National Symphony of Bharat',
-      audio_url: 'https://upload.wikimedia.org/wikipedia/commons/4/4e/Vande_Mataram_%28Instrumental%29.ogg',
-      duration: '3:12',
-      is_active: 1
-    }
-  ],
-  posts: [
-    {
-      id: 'post-1',
-      title: '🚨 Ground Intel: Toolkit Networks & Coordinated Disinformation Busted',
-      content: 'Multiple synchronized handles originating from offshore proxies have been detected attempting to flood the directory with defaming entries against sovereign nationalist leadership. The automated anti-bot shield and honeypot traps have permanently blacklisted hostile IP addresses. Rashtra Hit Sarvopari 🇮🇳.',
-      image_url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80',
-      badge: '🚨 BREAKING ALERT',
-      is_pinned: 1,
-      likes: 312,
-      views: 1840,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    },
-    {
-      id: 'post-2',
-      title: '🇮🇳 Special Fact Dispatch: India Crosses $21,000 Crore in Indigenous Defence Exports',
-      content: 'Under NDA, India has transformed from the world largest arms importer into a premier global defence exporter to over 85 nations. The induction of indigenous Tejas Mk1A, INS Vikrant, and BrahMos supersonic cruise missiles marks the permanent end of foreign dependency.',
-      image_url: 'https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&w=1200&q=80',
-      badge: '🇮🇳 NATIONAL DISPATCH',
-      is_pinned: 0,
-      likes: 489,
-      views: 2950,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
-  ],
+  trafficLogs: [],
+  activityLogs: [],
+  categories: [],
+  playlist: [],
+  posts: [],
   govtPoll: {
-    yesVotes: 12840,
-    noVotes: 1420,
-    totalVotes: 14260,
-    yesPercent: 90,
-    noPercent: 10
+    yesVotes: 0,
+    noVotes: 0,
+    totalVotes: 0,
+    yesPercent: 0,
+    noPercent: 0
   },
   pollVotes: {},
   bulletin: {
-    is_active: 1,
-    message: '🚨 ALERT: Coordinated Disinformation & Toolkit Networks Busted Across Sovereign Cyber Borders | Rashtra Hit Sarvopari | Bharat Mata ki Jai 🇮🇳'
+    is_active: 0,
+    message: ''
   },
   announcement: {
-    is_active: 1,
-    title: '🔴 LIVE ALERT / व्यवस्थापक सूचना',
-    message: '🇮🇳 Rashtra Hit Sarvopari — Welcome to Exposed Propagandus Sovereign Community',
-    type: 'warning'
+    is_active: 0,
+    title: '',
+    message: '',
+    type: 'info'
   }
 };
 
@@ -254,36 +142,44 @@ function formatHandleName(handle) {
     .join(' ');
 }
 
-// Scrape Instagram Profile
+// Scrape Instagram Profile with Cross-Platform Identity Resolution
 async function fetchInstagramProfile(handle) {
   let name = '';
   let followers = '';
   let bio = '';
   let avatarUrl = '';
 
+  // 1. Cross-platform resolution via fxtwitter API (works reliably from Cloudflare edge)
   try {
-    const res = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent('site:instagram.com/' + handle)}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-      }
-    });
-    if (res.ok) {
-      const html = await res.text();
-      const snippetMatch = html.match(/<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/i);
-      if (snippetMatch) {
-        const snippet = snippetMatch[1].replace(/<[^>]+>/g, '').replace(/&quot;/g, '"').trim();
-        const folMatch = snippet.match(/([0-9.,]+[KkMmBb]?\s*Followers)/i);
-        if (folMatch) followers = folMatch[1];
-        const nameMatch = snippet.match(/-\s*([^(]+)\s*\(@/i);
-        if (nameMatch) name = nameMatch[1].trim();
-        const bioMatch = snippet.match(/on Instagram:\s*["\u201C]?([^"]*)["\u201D]?/i);
-        if (bioMatch) bio = bioMatch[1].trim();
+    const candidates = [handle, handle.replace(/([a-z])([A-Z])/g, '$1_$2')];
+    for (const h of candidates) {
+      const fxRes = await fetch(`https://api.fxtwitter.com/${encodeURIComponent(h)}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+      });
+      if (fxRes.ok) {
+        const fxData = await fxRes.json().catch(() => null);
+        if (fxData && fxData.code === 200 && fxData.user) {
+          const u = fxData.user;
+          if (u.name) name = u.name;
+          if (u.description) bio = u.description;
+          if (u.avatar_url) {
+            avatarUrl = u.avatar_url.replace('_normal.', '_400x400.');
+          }
+          if (typeof u.followers === 'number') {
+            if (u.followers >= 1000000) followers = (u.followers / 1000000).toFixed(2) + 'M followers';
+            else if (u.followers >= 1000) followers = (u.followers / 1000).toFixed(1) + 'K followers';
+            else followers = u.followers + ' followers';
+          }
+          break;
+        }
       }
     }
   } catch (e) {}
 
   if (!name) name = formatHandleName(handle);
-  avatarUrl = `https://unavatar.io/x/${handle}`;
+  if (!avatarUrl) {
+    avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=E1306C&color=ffffff&size=512&bold=true&font-size=0.38`;
+  }
 
   return {
     success: true,
@@ -764,7 +660,7 @@ export default {
 
           const usersRes = await env.DB.prepare(userQuery).all();
           const msgsRes = await env.DB.prepare('SELECT id, channel_id, user_id, user_name, username, user_avatar, verified_type, content, attachments, media_links, gif_url, reactions, reply_to, is_deleted, created_at FROM community_messages WHERE is_deleted = 0 ORDER BY created_at DESC LIMIT 200').all();
-          const chansRes = await env.DB.prepare('SELECT id, creator_id, creator_name, creator_username, name, description, is_private, members, created_at FROM community_channels ORDER BY created_at ASC').all();
+          const chansRes = await env.DB.prepare('SELECT id, creator_id, creator_name, creator_username, name, description, join_token, is_private, members, pending_requests, created_at FROM community_channels ORDER BY created_at ASC').all();
 
           const parsedMsgs = (msgsRes.results || []).map(m => ({
             ...m,
@@ -775,7 +671,8 @@ export default {
 
           const parsedChans = (chansRes.results || []).map(c => ({
             ...c,
-            members: c.members ? JSON.parse(c.members) : []
+            members: c.members ? JSON.parse(c.members) : [],
+            pending_requests: c.pending_requests ? JSON.parse(c.pending_requests) : []
           }));
 
           return new Response(JSON.stringify({
@@ -1728,6 +1625,78 @@ export default {
 
     if (path === '/api/posts' && request.method === 'GET') {
       return new Response(JSON.stringify(memoryState.posts), { headers: JSON_HEADERS });
+    }
+
+    if (path.startsWith('/api/posts/') && path.endsWith('/like') && request.method === 'POST') {
+      const parts = path.split('/');
+      const id = parts[3];
+      const post = memoryState.posts.find(p => p.id === id);
+      if (post) {
+        post.likes = (post.likes || 0) + 1;
+        return new Response(JSON.stringify({ success: true, likes: post.likes }), { headers: JSON_HEADERS });
+      }
+      return new Response(JSON.stringify({ error: 'Post not found' }), { status: 404, headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/admin/posts' && request.method === 'GET') {
+      if (!isAuthorizedAdmin(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      }
+      return new Response(JSON.stringify(memoryState.posts), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/admin/posts' && request.method === 'POST') {
+      if (!isAuthorizedAdmin(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      }
+      try {
+        const body = await request.json().catch(() => ({}));
+        const newPost = {
+          id: 'post-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+          title: body.title?.trim() || 'Admin Bulletin',
+          content: body.content?.trim() || '',
+          image_url: body.image_url?.trim() || null,
+          badge: body.badge || 'DISPATCH',
+          is_pinned: body.is_pinned ? 1 : 0,
+          likes: 0,
+          views: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        memoryState.posts.unshift(newPost);
+        return new Response(JSON.stringify({ success: true, post: newPost }), { headers: JSON_HEADERS });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
+      }
+    }
+
+    if (path.startsWith('/api/admin/posts/') && request.method === 'DELETE') {
+      if (!isAuthorizedAdmin(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      }
+      const id = path.replace('/api/admin/posts/', '').trim();
+      const initialLen = memoryState.posts.length;
+      memoryState.posts = memoryState.posts.filter(p => p.id !== id);
+      return new Response(JSON.stringify({ success: true, deleted: initialLen !== memoryState.posts.length }), { headers: JSON_HEADERS });
+    }
+
+    if (path.startsWith('/api/admin/posts/') && request.method === 'PUT') {
+      if (!isAuthorizedAdmin(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      }
+      const id = path.replace('/api/admin/posts/', '').trim();
+      const body = await request.json().catch(() => ({}));
+      const post = memoryState.posts.find(p => p.id === id);
+      if (post) {
+        if (body.title) post.title = body.title.trim();
+        if (body.content) post.content = body.content.trim();
+        if (body.image_url !== undefined) post.image_url = body.image_url ? body.image_url.trim() : null;
+        if (body.badge) post.badge = body.badge;
+        if (body.is_pinned !== undefined) post.is_pinned = body.is_pinned ? 1 : 0;
+        post.updated_at = new Date().toISOString();
+        return new Response(JSON.stringify({ success: true, post }), { headers: JSON_HEADERS });
+      }
+      return new Response(JSON.stringify({ error: 'Post not found' }), { status: 404, headers: JSON_HEADERS });
     }
 
     if (path === '/api/poll' && request.method === 'GET') {

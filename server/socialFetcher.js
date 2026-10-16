@@ -319,8 +319,32 @@ async function fetchInstagramProfile(input) {
     console.error('Instagram embed fetch error:', err);
   }
 
+  // Cross-platform identity resolution for real creator photo & verified name
+  let resolvedName = '';
+  if (!avatarUrl || !followers) {
+    try {
+      const candidates = [cleanHandle, cleanHandle.replace(/([a-z])([A-Z])/g, '$1_$2')];
+      for (const h of candidates) {
+        const fxData = await fetchJson(`https://api.fxtwitter.com/${encodeURIComponent(h)}`);
+        if (fxData && fxData.code === 200 && fxData.user) {
+          const u = fxData.user;
+          if (u.name) resolvedName = u.name;
+          if (u.avatar_url && !avatarUrl) {
+            avatarUrl = u.avatar_url.replace('_normal.', '_400x400.');
+          }
+          if (typeof u.followers === 'number' && !followers) {
+            if (u.followers >= 1000000) followers = (u.followers / 1000000).toFixed(2) + 'M followers';
+            else if (u.followers >= 1000) followers = (u.followers / 1000).toFixed(1) + 'K followers';
+            else followers = u.followers + ' followers';
+          }
+          break;
+        }
+      }
+    } catch (e) {}
+  }
+
   // Format a clean display name
-  const formattedName = cleanHandle
+  const formattedName = resolvedName || cleanHandle
     .replace(/[_.]+/g, ' ')
     .replace(/\b\w/g, (l) => l.toUpperCase());
 
