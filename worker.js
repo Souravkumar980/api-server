@@ -1,10 +1,11 @@
 /**
  * ===================================================================
- * 🛡️ EXPOSED PROPAGANDUS — CLOUDFLARE WORKER API SERVER
+ * 🛡️ EXPOSED PROPAGANDUS — FULL STACK CLOUDFLARE WORKER API SERVER
  * ===================================================================
  * High-performance edge API server compatible with Cloudflare Workers
- * Supports Cloudflare D1 serverless database, CORS for InfinityFree,
- * and real-time live events.
+ * Supports Cloudflare D1 serverless database, in-memory resilient fallback,
+ * real-time SSE community chat, automated Instagram/YouTube/X profile scraping,
+ * live traffic analytics, nationalist influencer directory, and patriot shield.
  *
  * Bharat Mata ki Jai 🇮🇳
  * ===================================================================
@@ -13,7 +14,7 @@
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, x-admin-key, X-Admin-Key',
+  'Access-Control-Allow-Headers': '*',
   'Access-Control-Max-Age': '86400',
 };
 
@@ -67,13 +68,14 @@ const memoryState = {
   blockedIps: new Set(),
   activeAdminTokens: new Set(['JaiHindBharatMataKiJai2024!', 'Q0gng04bk3']),
   sseWriters: new Set(),
+  files: new Map(),
   reports: [
     {
       id: 'rep-1',
-      entity_id: 'ent-1',
-      entity_name: 'Propaganda Handle @troll_left',
+      entity_id: 'ent-demo-1',
+      entity_name: 'Coordinated Toolkit Network',
       report_type: 'Fake News / Coordinated Disinformation',
-      message: 'Spreading misleading audio clip against Indian army.',
+      message: 'Spreading misleading audio clip against Indian army and constitutional bodies.',
       status: 'pending',
       reported_by_ip: '103.21.244.1',
       created_at: new Date().toISOString()
@@ -92,6 +94,20 @@ const memoryState = {
       status: 'approved',
       is_verified: 1,
       upvotes: 4820,
+      created_at: new Date().toISOString()
+    },
+    {
+      id: 'nat-2',
+      name: 'Anand Ranganathan',
+      handle_x: '@ARanganathan72',
+      handle_yt: 'AnandRanganathanOfficial',
+      handle_insta: 'anandranganathan72',
+      category: 'Author & Scientist',
+      description: 'Scientist, author, and fierce orator fearlessly speaking truth to institutional bias.',
+      avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
+      status: 'approved',
+      is_verified: 1,
+      upvotes: 3950,
       created_at: new Date().toISOString()
     }
   ],
@@ -122,7 +138,56 @@ const memoryState = {
       created_at: new Date().toISOString()
     }
   ],
-  trafficLogs: [],
+  trafficLogs: [
+    {
+      id: 'trf-1',
+      ip: '103.21.244.15',
+      page: '/community',
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15',
+      deviceType: 'mobile',
+      browser: 'Safari Mobile',
+      os: 'iOS 17.4',
+      country: 'IN',
+      city: 'New Delhi',
+      timestamp: new Date(Date.now() - 1000 * 60 * 2).toISOString()
+    },
+    {
+      id: 'trf-2',
+      ip: '49.36.120.88',
+      page: '/database',
+      userAgent: 'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 Chrome/122.0.0.0 Mobile',
+      deviceType: 'mobile',
+      browser: 'Chrome Mobile',
+      os: 'Android 14',
+      country: 'IN',
+      city: 'Mumbai',
+      timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString()
+    },
+    {
+      id: 'trf-3',
+      ip: '122.161.45.10',
+      page: '/nationalists',
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0',
+      deviceType: 'desktop',
+      browser: 'Chrome',
+      os: 'Windows 11',
+      country: 'IN',
+      city: 'Bengaluru',
+      timestamp: new Date(Date.now() - 1000 * 60 * 8).toISOString()
+    },
+    {
+      id: 'trf-4',
+      ip: '106.213.82.9',
+      page: '/',
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15',
+      deviceType: 'desktop',
+      browser: 'Safari',
+      os: 'macOS',
+      country: 'IN',
+      city: 'Ahmedabad',
+      timestamp: new Date(Date.now() - 1000 * 60 * 12).toISOString()
+    }
+  ],
   activityLogs: [
     {
       id: 'log-1',
@@ -133,9 +198,11 @@ const memoryState = {
     }
   ],
   categories: [
-    { id: 'cat-1', name: 'Anti-National Narrative', description: 'Coordinated media attacking India\'s sovereignty', color: '#ef4444' },
-    { id: 'cat-2', name: 'Foreign Funded Toolkit', description: 'Offshore networks targeting Indian state institutions', color: '#f59e0b' },
-    { id: 'cat-3', name: 'Deepfake & Disinformation', description: 'Manipulated media and cyber bots', color: '#8b5cf6' }
+    { id: 'cat-1', name: 'Anti-National Narrative', description: 'Coordinated media attacking India sovereignty', color: '#ef4444', type: 'entity' },
+    { id: 'cat-2', name: 'Foreign Funded Toolkit', description: 'Offshore networks targeting Indian state institutions', color: '#f59e0b', type: 'entity' },
+    { id: 'cat-3', name: 'Deepfake & Disinformation', description: 'Manipulated media and cyber bots', color: '#8b5cf6', type: 'entity' },
+    { id: 'cat-4', name: 'National Security Analyst', description: 'Defence and strategic affairs commentators', color: '#10b981', type: 'nationalist' },
+    { id: 'cat-5', name: 'Cultural Historian', description: 'Uncovering civilizational heritage and history', color: '#f97316', type: 'nationalist' }
   ],
   playlist: [
     {
@@ -163,7 +230,7 @@ const memoryState = {
     {
       id: 'post-2',
       title: '🇮🇳 Special Fact Dispatch: India Crosses $21,000 Crore in Indigenous Defence Exports',
-      content: 'Under NDA, India has transformed from the world\'s largest arms importer into a premier global defence exporter to over 85 nations. The induction of indigenous Tejas Mk1A, INS Vikrant, and BrahMos supersonic cruise missiles marks the permanent end of foreign dependency.',
+      content: 'Under NDA, India has transformed from the world largest arms importer into a premier global defence exporter to over 85 nations. The induction of indigenous Tejas Mk1A, INS Vikrant, and BrahMos supersonic cruise missiles marks the permanent end of foreign dependency.',
       image_url: 'https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&w=1200&q=80',
       badge: '🇮🇳 NATIONAL DISPATCH',
       is_pinned: 0,
@@ -173,8 +240,179 @@ const memoryState = {
       updated_at: new Date().toISOString()
     }
   ],
-  pollVotes: { 'modi_3': 850, 'nda_dev': 620, 'hindutva_resurgence': 540 }
+  govtPoll: {
+    yesVotes: 12840,
+    noVotes: 1420,
+    totalVotes: 14260,
+    yesPercent: 90,
+    noPercent: 10
+  },
+  pollVotes: { 'modi_3': 850, 'nda_dev': 620, 'hindutva_resurgence': 540 },
+  bulletin: {
+    is_active: 1,
+    message: '🚨 ALERT: Coordinated Disinformation & Toolkit Networks Busted Across Sovereign Cyber Borders | Rashtra Hit Sarvopari | Bharat Mata ki Jai 🇮🇳'
+  },
+  announcement: {
+    is_active: 1,
+    title: '🔴 LIVE ALERT / व्यवस्थापक सूचना',
+    message: '🇮🇳 Rashtra Hit Sarvopari — Welcome to Exposed Propagandus Sovereign Community',
+    type: 'warning'
+  }
 };
+
+// Clean social handles
+function cleanSocialHandle(input, platform) {
+  if (!input || typeof input !== 'string') return '';
+  let str = input.trim();
+  str = str.replace(/^https?:\/\/(www\.|m\.)?/, '');
+  str = str.replace(/^(x|twitter)\.com\//, '');
+  str = str.replace(/^youtube\.com\/(@|channel\/|c\/)?/, '');
+  str = str.replace(/^youtu\.be\//, '');
+  str = str.replace(/^(instagram\.com|instagr\.am)\//, '');
+  str = str.replace(/^facebook\.com\//, '');
+  str = str.replace(/^[#@]/, '');
+  str = str.split('?')[0].split('#')[0].split('&')[0];
+  const parts = str.split('/').filter(Boolean);
+  const reserved = ['p', 'reel', 'reels', 'tv', 'stories', 'explore', 'accounts', 'direct'];
+  if (parts.length > 0) {
+    if (reserved.includes(parts[0].toLowerCase()) && parts.length > 1) {
+      str = parts[1];
+    } else if (!reserved.includes(parts[0].toLowerCase())) {
+      str = parts[0];
+    }
+  }
+  return str.trim();
+}
+
+function formatHandleName(handle) {
+  if (!handle) return '';
+  return handle.replace(/[_.-]+/g, ' ')
+    .trim()
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
+// Scrape Instagram Profile
+async function fetchInstagramProfile(handle) {
+  let name = '';
+  let followers = '';
+  let bio = '';
+  let avatarUrl = '';
+
+  try {
+    const res = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent('site:instagram.com/' + handle)}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+      }
+    });
+    if (res.ok) {
+      const html = await res.text();
+      const snippetMatch = html.match(/<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/i);
+      if (snippetMatch) {
+        const snippet = snippetMatch[1].replace(/<[^>]+>/g, '').replace(/&quot;/g, '"').trim();
+        const folMatch = snippet.match(/([0-9.,]+[KkMmBb]?\s*Followers)/i);
+        if (folMatch) followers = folMatch[1];
+        const nameMatch = snippet.match(/-\s*([^(]+)\s*\(@/i);
+        if (nameMatch) name = nameMatch[1].trim();
+        const bioMatch = snippet.match(/on Instagram:\s*["\u201C]?([^"]*)["\u201D]?/i);
+        if (bioMatch) bio = bioMatch[1].trim();
+      }
+    }
+  } catch (e) {}
+
+  if (!name) name = formatHandleName(handle);
+  avatarUrl = `https://unavatar.io/x/${handle}`;
+
+  return {
+    success: true,
+    platform: 'insta',
+    handle,
+    name,
+    avatarUrl,
+    followers: followers || null,
+    subscribers: followers || null,
+    bio: bio || null
+  };
+}
+
+// Scrape YouTube Profile
+async function fetchYoutubeProfile(handle) {
+  let name = formatHandleName(handle);
+  let avatarUrl = `https://unavatar.io/youtube/@${handle}`;
+  let subscribers = null;
+  let bio = null;
+
+  try {
+    const res = await fetch(`https://www.youtube.com/@${handle}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9'
+      }
+    });
+    if (res.ok) {
+      const html = await res.text();
+      const titleMatch = html.match(/<meta property="og:title" content="([^"]+)"/i);
+      if (titleMatch && titleMatch[1]) name = titleMatch[1];
+
+      const imgMatch = html.match(/<meta property="og:image" content="([^"]+)"/i);
+      if (imgMatch && imgMatch[1]) avatarUrl = imgMatch[1];
+
+      const descMatch = html.match(/<meta property="og:description" content="([^"]+)"/i);
+      if (descMatch && descMatch[1]) bio = descMatch[1];
+
+      const subMatch = html.match(/([0-9.,]+[MK]?\s*subscribers)/i) ||
+                       html.match(/"subscriberCountText":\s*\{[^}]*"label":\s*"([^"]+)"/i);
+      if (subMatch) subscribers = subMatch[1];
+    }
+  } catch (e) {}
+
+  return {
+    success: true,
+    platform: 'yt',
+    handle,
+    name,
+    avatarUrl,
+    followers: subscribers,
+    subscribers,
+    bio
+  };
+}
+
+// Scrape X/Twitter Profile
+async function fetchTwitterProfile(handle) {
+  let name = formatHandleName(handle);
+  let avatarUrl = `https://unavatar.io/x/${handle}`;
+  let followers = null;
+
+  try {
+    const res = await fetch(`https://api.fxtwitter.com/${encodeURIComponent(handle)}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.user) {
+        const u = data.user;
+        if (u.name) name = u.name;
+        if (u.avatar_url) avatarUrl = u.avatar_url.replace('_normal.', '_400x400.');
+        if (typeof u.followers === 'number') {
+          followers = u.followers >= 1000000
+            ? (u.followers / 1000000).toFixed(2) + 'M followers'
+            : (u.followers >= 1000 ? (u.followers / 1000).toFixed(1) + 'K followers' : u.followers + ' followers');
+        }
+      }
+    }
+  } catch (e) {}
+
+  return {
+    success: true,
+    platform: 'x',
+    handle,
+    name,
+    avatarUrl,
+    followers,
+    subscribers: followers,
+    bio: null
+  };
+}
 
 // Helper: Broadcast live SSE event to all connected clients
 function broadcastSSE(data) {
@@ -223,38 +461,47 @@ export default {
       });
     }
 
-    // 3. Mandatory Client Key / Access Token Verification for ALL API Endpoints
-    // Prevents direct browser scraping, unauthorized URL inspection, or data exfiltration
-    if (path.startsWith('/api') || path.startsWith('/api/')) {
-      const appKey = request.headers.get('x-app-key') ||
-                     request.headers.get('x-client-key') ||
-                     request.headers.get('x-admin-key') ||
-                     url.searchParams.get('key') || '';
+    // -------------------------------------------------------------
+    // PROFILE FETCHING (INSTAGRAM, YOUTUBE, TWITTER/X)
+    // -------------------------------------------------------------
+    if (path === '/api/fetch-profile' && request.method === 'POST') {
+      try {
+        const body = await request.json().catch(() => ({}));
+        const rawUrl = body.url || body.inputUrl || '';
+        let platform = body.platform || 'auto';
 
-      const authHeader = request.headers.get('authorization') || '';
-      const cleanAuth = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : authHeader.trim();
+        if (!rawUrl) {
+          return new Response(JSON.stringify({ error: 'URL or handle is required' }), { status: 400, headers: JSON_HEADERS });
+        }
 
-      const validKeys = new Set([
-        'ep-client-v1-bharat-first-2024',
-        'JaiHindBharatMataKiJai2024!',
-        'Q0gng04bk3',
-        env?.ADMIN_KEY,
-        env?.APP_KEY
-      ].filter(Boolean));
+        if (platform === 'auto') {
+          const lower = rawUrl.toLowerCase();
+          if (/youtube\.com|youtu\.be/i.test(lower)) platform = 'yt';
+          else if (/x\.com|twitter\.com/i.test(lower)) platform = 'x';
+          else if (/instagram\.com|instagr\.am/i.test(lower)) platform = 'insta';
+          else if (rawUrl.startsWith('@')) platform = 'insta';
+          else platform = 'yt';
+        }
 
-      const isClientValid = validKeys.has(appKey) || validKeys.has(cleanAuth) ||
-                            appKey.startsWith('ep-adm-') || cleanAuth.startsWith('ep-adm-') ||
-                            isAuthorizedAdmin(request);
+        const handle = cleanSocialHandle(rawUrl, platform);
+        if (!handle) {
+          return new Response(JSON.stringify({ error: 'Could not extract handle' }), { status: 400, headers: JSON_HEADERS });
+        }
 
-      if (!isClientValid) {
-        return new Response(JSON.stringify({
-          error: 'UNAUTHORIZED_API_ACCESS',
-          status: 401,
-          message: 'Direct manual access denied. A valid client key (X-App-Key header or ?key= param) is required to access Exposed Propagandus API services.'
-        }), {
-          status: 401,
-          headers: JSON_HEADERS
-        });
+        let result;
+        if (platform === 'insta' || platform === 'instagram') {
+          result = await fetchInstagramProfile(handle);
+        } else if (platform === 'yt' || platform === 'youtube') {
+          result = await fetchYoutubeProfile(handle);
+        } else if (platform === 'x' || platform === 'twitter') {
+          result = await fetchTwitterProfile(handle);
+        } else {
+          result = await fetchInstagramProfile(handle);
+        }
+
+        return new Response(JSON.stringify(result), { headers: JSON_HEADERS });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message, success: false }), { status: 500, headers: JSON_HEADERS });
       }
     }
 
@@ -266,13 +513,9 @@ export default {
       const writer = writable.getWriter();
       const encoder = new TextEncoder();
 
-      // Register writer for live push
       memoryState.sseWriters.add(writer);
-
-      // Initial connection frame
       writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'CONNECTED', timestamp: Date.now() })}\n\n`));
 
-      // Keep connection alive with periodic comments
       const timer = setInterval(() => {
         try {
           writer.write(encoder.encode(': heartbeat\n\n'));
@@ -301,135 +544,56 @@ export default {
     }
 
     // -------------------------------------------------------------
-    // COMMUNITY: SYNC (SECURED: Role-Based Field Filtering & IDOR Protection)
+    // COMMUNITY: SYNC
     // -------------------------------------------------------------
     if (path === '/api/community/sync' && request.method === 'GET') {
       const isAdmin = isAuthorizedAdmin(request);
-      const reqUrl = new URL(request.url);
-      const reqUserId = reqUrl.searchParams.get('user_id') || '';
-      const reqUsername = (reqUrl.searchParams.get('username') || '').toLowerCase();
 
-      if (env.DB) {
+      if (env?.DB) {
         try {
-          // If admin, select full fields; if regular user, strictly sanitize sensitive fields!
           const userQuery = isAdmin
             ? 'SELECT id, name, username, email, phone, avatar_url, verified_type, is_admin, is_banned, created_at FROM community_users ORDER BY created_at DESC'
             : 'SELECT id, name, username, avatar_url, verified_type, is_admin, is_banned, created_at FROM community_users WHERE is_banned = 0 ORDER BY created_at DESC';
 
           const usersRes = await env.DB.prepare(userQuery).all();
           const msgsRes = await env.DB.prepare('SELECT * FROM community_messages WHERE is_deleted = 0 ORDER BY created_at DESC LIMIT 200').all();
-          const chansRes = await env.DB.prepare('SELECT * FROM community_channels ORDER BY created_at DESC').all();
+          const chansRes = await env.DB.prepare('SELECT * FROM community_channels ORDER BY created_at ASC').all();
 
-          let parsedMsgs = (msgsRes.results || []).reverse().map(m => ({
+          const parsedMsgs = (msgsRes.results || []).map(m => ({
             ...m,
             attachments: m.attachments ? JSON.parse(m.attachments) : [],
             media_links: m.media_links ? JSON.parse(m.media_links) : [],
-            reactions: m.reactions ? JSON.parse(m.reactions) : {},
-            reply_to: m.reply_to ? JSON.parse(m.reply_to) : null,
+            reactions: m.reactions ? JSON.parse(m.reactions) : {}
+          })).reverse();
+
+          const parsedChans = (chansRes.results || []).map(c => ({
+            ...c,
+            members: c.members ? JSON.parse(c.members) : [],
+            pending_requests: c.pending_requests ? JSON.parse(c.pending_requests) : []
           }));
-
-          // Channels: sanitize join_token and pending_requests for unauthorized users
-          let parsedChans = (chansRes.results || []).map(c => {
-            const members = c.members ? JSON.parse(c.members) : [];
-            const pending = c.pending_requests ? JSON.parse(c.pending_requests) : [];
-            const isCreator = c.creator_id === reqUserId;
-            const isMember = members.includes(reqUserId);
-
-            if (isAdmin || isCreator || isMember || !c.is_private) {
-              return {
-                ...c,
-                members: isAdmin || isCreator ? members : members.map(m => m === reqUserId ? m : 'member'),
-                pending_requests: isAdmin || isCreator ? pending : [],
-                join_token: isAdmin || isCreator || isMember ? c.join_token : undefined
-              };
-            }
-            return null;
-          }).filter(Boolean);
-
-          // Restrict message access: normal users only receive public or channels they belong to
-          if (!isAdmin) {
-            const allowedChannels = new Set(parsedChans.map(c => c.id));
-            allowedChannels.add('public');
-            parsedMsgs = parsedMsgs.filter(m => allowedChannels.has(m.channel_id));
-          }
-
-          // Notifications: Strictly scoped to the authenticated/matching recipient!
-          let notifications = [];
-          if (isAdmin) {
-            const notifsRes = await env.DB.prepare('SELECT * FROM community_notifications ORDER BY created_at DESC LIMIT 100').all();
-            notifications = notifsRes.results || [];
-          } else if (reqUsername) {
-            const notifsRes = await env.DB.prepare('SELECT * FROM community_notifications WHERE LOWER(recipient_username) = ? ORDER BY created_at DESC LIMIT 50').bind(reqUsername).all();
-            notifications = notifsRes.results || [];
-          }
-
-          // Admin Queries: STRICTLY ADMIN ONLY! Regular visitors receive empty arrays!
-          let allQueries = [];
-          if (isAdmin) {
-            const queriesRes = await env.DB.prepare('SELECT * FROM community_contact_queries ORDER BY created_at DESC LIMIT 100').all();
-            allQueries = queriesRes.results || [];
-          }
-
-          const influencerQueries = allQueries.filter(q => q.type === 'creator');
-          const contactQueries = allQueries.filter(q => q.type !== 'creator');
 
           return new Response(JSON.stringify({
             users: usersRes.results || [],
             messages: parsedMsgs,
             channels: parsedChans,
-            notifications,
-            adminQueries: allQueries,
-            influencerQueries,
-            contactQueries
+            onlineCount: memoryState.sseWriters.size || 1,
+            serverTime: new Date().toISOString()
           }), { headers: JSON_HEADERS });
         } catch (e) {}
       }
 
-      // Memory Fallback with strict field sanitization
-      const safeMemUsers = isAdmin
-        ? memoryState.users
-        : memoryState.users.filter(u => !u.is_banned).map(({ id, name, username, avatar_url, verified_type, is_admin, created_at }) => ({
-            id, name, username, avatar_url, verified_type, is_admin, created_at
-          }));
-
-      let memMsgs = memoryState.messages.filter(m => !m.is_deleted);
-      if (!isAdmin) {
-        memMsgs = memMsgs.filter(m => m.channel_id === 'public' || (reqUserId && memoryState.channels.some(c => c.id === m.channel_id && (c.creator_id === reqUserId || (c.members || []).includes(reqUserId)))));
-      }
-
-      let memChans = memoryState.channels;
-      if (!isAdmin) {
-        memChans = memChans.map(c => {
-          const isCreator = c.creator_id === reqUserId;
-          const isMember = (c.members || []).includes(reqUserId);
-          if (isCreator || isMember || !c.is_private) {
-            return {
-              ...c,
-              pending_requests: isCreator ? c.pending_requests : [],
-              join_token: isCreator || isMember ? c.join_token : undefined
-            };
-          }
-          return null;
-        }).filter(Boolean);
-      }
-
-      let memNotifs = [];
-      if (isAdmin) {
-        memNotifs = memoryState.notifications;
-      } else if (reqUsername) {
-        memNotifs = memoryState.notifications.filter(n => (n.recipient_username || '').toLowerCase() === reqUsername);
-      }
-
-      const allMemQueries = isAdmin ? (memoryState.adminQueries || []) : [];
+      const sanitizedUsers = memoryState.users.map(u => {
+        if (isAdmin) return u;
+        const { password_hash, email, phone, ip_address, ...safe } = u;
+        return safe;
+      });
 
       return new Response(JSON.stringify({
-        users: safeMemUsers,
-        messages: memMsgs,
-        channels: memChans,
-        notifications: memNotifs,
-        adminQueries: allMemQueries,
-        influencerQueries: allMemQueries.filter(q => q.type === 'creator'),
-        contactQueries: allMemQueries.filter(q => q.type !== 'creator')
+        users: sanitizedUsers,
+        messages: memoryState.messages,
+        channels: memoryState.channels,
+        onlineCount: memoryState.sseWriters.size || 1,
+        serverTime: new Date().toISOString()
       }), { headers: JSON_HEADERS });
     }
 
@@ -439,47 +603,52 @@ export default {
     if (path === '/api/community/register' && request.method === 'POST') {
       try {
         const body = await request.json();
-        const { name, email, phone, password, avatar_url } = body;
-        if (!name || !email || !password) {
-          return new Response(JSON.stringify({ error: 'Name, email, and password required.' }), { status: 400, headers: JSON_HEADERS });
+        const { name, username, email, phone, password } = body;
+
+        if (!name || !username || !email || !password) {
+          return new Response(JSON.stringify({ error: 'Missing required registration fields' }), { status: 400, headers: JSON_HEADERS });
         }
 
-        const cleanEmail = email.trim().toLowerCase();
-        if (!cleanEmail.endsWith('@gmail.com') && !cleanEmail.endsWith('@outlook.com')) {
-          return new Response(JSON.stringify({ error: 'Only @gmail.com and @outlook.com addresses are permitted.' }), { status: 400, headers: JSON_HEADERS });
+        const cleanUser = username.trim().toLowerCase();
+        if (PROTECTED_USERNAMES_REGEX.test(cleanUser)) {
+          return new Response(JSON.stringify({ error: 'Username is reserved by administrative policy.' }), { status: 400, headers: JSON_HEADERS });
         }
-
-        // Generate username: rahulXXXX
-        const cleanName = name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().slice(0, 10) || 'citizen';
-        const randPart = Math.random().toString(36).substring(2, 6);
-        let username = `${cleanName}_${randPart}`;
 
         const newUser = {
-          id: 'usr_' + Date.now(),
+          id: 'usr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
           name: name.trim(),
-          username,
-          email: cleanEmail,
-          phone: phone?.trim() || null,
+          username: cleanUser,
+          email: email.trim().toLowerCase(),
+          phone: phone ? phone.trim() : null,
           password_hash: password,
-          avatar_url: avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`,
+          avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanUser)}`,
           verified_type: 'none',
           ip_address: clientIp,
           is_admin: 0,
           is_banned: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          created_at: new Date().toISOString()
         };
 
-        if (env.DB) {
-          await env.DB.prepare(`
-            INSERT INTO community_users (id, name, username, email, phone, password_hash, avatar_url, verified_type, ip_address, is_admin, is_banned, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `).bind(newUser.id, newUser.name, newUser.username, newUser.email, newUser.phone, newUser.password_hash, newUser.avatar_url, newUser.verified_type, newUser.ip_address, newUser.is_admin, newUser.is_banned, newUser.created_at, newUser.updated_at).run();
-        } else {
-          memoryState.users.unshift(newUser);
+        if (env?.DB) {
+          try {
+            await env.DB.prepare(`
+              INSERT INTO community_users (id, name, username, email, phone, password_hash, avatar_url, verified_type, ip_address, is_admin, is_banned, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(
+              newUser.id, newUser.name, newUser.username, newUser.email, newUser.phone,
+              newUser.password_hash, newUser.avatar_url, newUser.verified_type, newUser.ip_address,
+              newUser.is_admin, newUser.is_banned, newUser.created_at, newUser.created_at
+            ).run();
+          } catch (e) {
+            return new Response(JSON.stringify({ error: 'Username or Email already registered.' }), { status: 409, headers: JSON_HEADERS });
+          }
         }
 
-        return new Response(JSON.stringify({ success: true, user: newUser }), { headers: JSON_HEADERS });
+        memoryState.users.push(newUser);
+        broadcastSSE({ type: 'USER_REGISTERED', user: { id: newUser.id, name: newUser.name, username: newUser.username, avatar_url: newUser.avatar_url } });
+
+        const { password_hash, ...safeUser } = newUser;
+        return new Response(JSON.stringify({ success: true, user: safeUser }), { headers: JSON_HEADERS });
       } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
       }
@@ -490,40 +659,33 @@ export default {
     // -------------------------------------------------------------
     if (path === '/api/community/login' && request.method === 'POST') {
       try {
-        const { credential, password } = await request.json();
-        const cred = credential?.trim().toLowerCase();
+        const body = await request.json();
+        const { username, password } = body;
+        const cleanIdentifier = (username || '').trim().toLowerCase();
 
-        // Master Admin Hardcoded override
-        if (cred === 'omkumar.working@gmail.com' && password === 'Q0gng04bk3') {
-          const adminUser = {
-            id: 'usr_admin_master',
-            name: 'Om Kumar (Admin)',
-            username: 'omkumar',
-            email: 'omkumar.working@gmail.com',
-            verified_type: 'influencer',
-            is_admin: 1,
-            is_banned: 0
-          };
-          return new Response(JSON.stringify({ success: true, user: adminUser }), { headers: JSON_HEADERS });
+        let foundUser = null;
+        if (env?.DB) {
+          try {
+            foundUser = await env.DB.prepare('SELECT * FROM community_users WHERE LOWER(username) = ? OR LOWER(email) = ?')
+              .bind(cleanIdentifier, cleanIdentifier)
+              .first();
+          } catch (e) {}
         }
 
-        // Database or Memory lookup
-        let user = memoryState.users.find(u => (u.email?.toLowerCase() === cred || u.username?.toLowerCase() === cred) && u.password_hash === password);
-
-        if (env.DB) {
-          const row = await env.DB.prepare('SELECT * FROM community_users WHERE (LOWER(email) = ? OR LOWER(username) = ?) AND password_hash = ?').bind(cred, cred, password).first();
-          if (row) user = row;
+        if (!foundUser) {
+          foundUser = memoryState.users.find(u => u.username.toLowerCase() === cleanIdentifier || u.email.toLowerCase() === cleanIdentifier);
         }
 
-        if (!user) {
-          return new Response(JSON.stringify({ error: 'Invalid email/username or password.' }), { status: 401, headers: JSON_HEADERS });
+        if (!foundUser || foundUser.password_hash !== password) {
+          return new Response(JSON.stringify({ error: 'Invalid credentials. Please verify your username and password.' }), { status: 401, headers: JSON_HEADERS });
         }
 
-        if (user.is_banned) {
-          return new Response(JSON.stringify({ error: 'This account has been banned from the community.' }), { status: 403, headers: JSON_HEADERS });
+        if (foundUser.is_banned) {
+          return new Response(JSON.stringify({ error: 'This account has been suspended for violating community guidelines.' }), { status: 403, headers: JSON_HEADERS });
         }
 
-        return new Response(JSON.stringify({ success: true, user }), { headers: JSON_HEADERS });
+        const { password_hash, ...safeUser } = foundUser;
+        return new Response(JSON.stringify({ success: true, user: safeUser }), { headers: JSON_HEADERS });
       } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
       }
@@ -535,290 +697,121 @@ export default {
     if (path === '/api/community/messages' && request.method === 'POST') {
       try {
         const body = await request.json();
-        const msgId = body.id || ('msg_' + Date.now());
-        const savedMsg = {
-          id: msgId,
-          channel_id: body.channel_id || 'public',
-          user_id: body.user_id,
-          user_name: body.user_name || 'Citizen',
-          username: body.username || 'user',
-          user_avatar: body.user_avatar || null,
-          verified_type: body.verified_type || 'none',
-          content: body.content || '',
-          attachments: body.attachments || [],
-          media_links: body.media_links || [],
-          gif_url: body.gif_url || null,
-          reactions: body.reactions || {},
-          reply_to: body.reply_to || null,
-          is_deleted: 0,
-          created_at: body.created_at || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
+        const { channel_id, user_id, user_name, username, user_avatar, verified_type, content, attachments, media_links, gif_url, reply_to } = body;
 
-        if (env.DB) {
-          await env.DB.prepare(`
-            INSERT INTO community_messages (id, channel_id, user_id, user_name, username, user_avatar, verified_type, content, attachments, media_links, gif_url, reactions, reply_to, is_deleted, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
-          `).bind(
-            savedMsg.id, savedMsg.channel_id, savedMsg.user_id, savedMsg.user_name, savedMsg.username,
-            savedMsg.user_avatar, savedMsg.verified_type, savedMsg.content, JSON.stringify(savedMsg.attachments),
-            JSON.stringify(savedMsg.media_links), savedMsg.gif_url, JSON.stringify(savedMsg.reactions),
-            savedMsg.reply_to ? JSON.stringify(savedMsg.reply_to) : null, savedMsg.created_at
-          ).run();
-        } else {
-          memoryState.messages.push(savedMsg);
+        if (!user_id || (!content && (!attachments || attachments.length === 0) && !gif_url)) {
+          return new Response(JSON.stringify({ error: 'Message content or attachment required' }), { status: 400, headers: JSON_HEADERS });
         }
 
-        return new Response(JSON.stringify({ success: true, message: savedMsg }), { headers: JSON_HEADERS });
+        const newMsg = {
+          id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+          channel_id: channel_id || 'public',
+          user_id,
+          user_name: user_name || 'Citizen',
+          username: username || 'user',
+          user_avatar: user_avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(username || 'u')}`,
+          verified_type: verified_type || 'none',
+          content: content || '',
+          attachments: attachments || [],
+          media_links: media_links || [],
+          gif_url: gif_url || null,
+          reactions: {},
+          reply_to: reply_to || null,
+          is_deleted: 0,
+          created_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+
+        if (env?.DB) {
+          try {
+            await env.DB.prepare(`
+              INSERT INTO community_messages (id, channel_id, user_id, user_name, username, user_avatar, verified_type, content, attachments, media_links, gif_url, reactions, reply_to, is_deleted, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(
+              newMsg.id, newMsg.channel_id, newMsg.user_id, newMsg.user_name, newMsg.username,
+              newMsg.user_avatar, newMsg.verified_type, newMsg.content, JSON.stringify(newMsg.attachments),
+              JSON.stringify(newMsg.media_links), newMsg.gif_url, JSON.stringify(newMsg.reactions),
+              newMsg.reply_to, newMsg.is_deleted, newMsg.created_at
+            ).run();
+          } catch (e) {}
+        }
+
+        memoryState.messages.push(newMsg);
+        broadcastSSE({ type: 'NEW_MESSAGE', message: newMsg });
+
+        return new Response(JSON.stringify({ success: true, message: newMsg }), { headers: JSON_HEADERS });
       } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
       }
     }
 
     // -------------------------------------------------------------
-    // COMMUNITY: EMOJI REACTION (WhatsApp Style)
+    // COMMUNITY: REACTION
     // -------------------------------------------------------------
     if (path === '/api/community/messages/react' && request.method === 'POST') {
       try {
-        const { message_id, emoji, user_id, username } = await request.json();
-        let targetMsg = memoryState.messages.find(m => m.id === message_id);
+        const body = await request.json();
+        const { message_id, emoji, user_id, username } = body;
 
-        if (env.DB) {
-          const row = await env.DB.prepare('SELECT reactions FROM community_messages WHERE id = ?').bind(message_id).first();
-          if (row) {
-            targetMsg = { reactions: row.reactions ? JSON.parse(row.reactions) : {} };
+        let target = memoryState.messages.find(m => m.id === message_id);
+        if (target) {
+          if (!target.reactions) target.reactions = {};
+          if (!target.reactions[emoji]) target.reactions[emoji] = [];
+
+          const existingIdx = target.reactions[emoji].findIndex(u => u.user_id === user_id);
+          if (existingIdx >= 0) {
+            target.reactions[emoji].splice(existingIdx, 1);
+            if (target.reactions[emoji].length === 0) delete target.reactions[emoji];
+          } else {
+            target.reactions[emoji].push({ user_id, username });
           }
+
+          broadcastSSE({ type: 'MESSAGE_REACTION', message_id, reactions: target.reactions });
+          return new Response(JSON.stringify({ success: true, reactions: target.reactions }), { headers: JSON_HEADERS });
         }
-
-        if (!targetMsg) {
-          return new Response(JSON.stringify({ error: 'Message not found' }), { status: 404, headers: JSON_HEADERS });
-        }
-
-        const rx = { ...(targetMsg.reactions || {}) };
-        const alreadyReactedSame = rx[emoji] && rx[emoji].some(u => u.user_id === user_id);
-
-        // Remove old reaction by user
-        for (const k of Object.keys(rx)) {
-          if (Array.isArray(rx[k])) {
-            rx[k] = rx[k].filter(u => u.user_id !== user_id);
-            if (rx[k].length === 0) delete rx[k];
-          }
-        }
-
-        if (!alreadyReactedSame) {
-          if (!rx[emoji]) rx[emoji] = [];
-          rx[emoji].push({ user_id, username: username || 'user' });
-        }
-
-        targetMsg.reactions = rx;
-
-        if (env.DB) {
-          await env.DB.prepare('UPDATE community_messages SET reactions = ? WHERE id = ?').bind(JSON.stringify(rx), message_id).run();
-        }
-
-        return new Response(JSON.stringify({ success: true, message_id, reactions: rx }), { headers: JSON_HEADERS });
+        return new Response(JSON.stringify({ success: true }), { headers: JSON_HEADERS });
       } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
       }
     }
 
     // -------------------------------------------------------------
-    // COMMUNITY: CHANNELS & MEMBERSHIP
+    // COMMUNITY: CREATE CHANNEL
     // -------------------------------------------------------------
     if (path === '/api/community/channels' && request.method === 'POST') {
       try {
         const body = await request.json();
+        const { creator_id, creator_name, creator_username, name, description, is_private } = body;
+
         const newChan = {
-          id: body.id || ('chn_' + Date.now()),
-          creator_id: body.creator_id,
-          creator_name: body.creator_name,
-          creator_username: body.creator_username,
-          name: body.name,
-          description: body.description || '',
-          join_token: body.join_token || ('tok_' + Math.random().toString(36).substr(2, 8)),
-          is_private: 1,
-          members: [body.creator_id],
+          id: 'chan_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+          creator_id,
+          creator_name,
+          creator_username,
+          name: name.trim(),
+          description: description || '',
+          join_token: Math.random().toString(36).substr(2, 8).toUpperCase(),
+          is_private: is_private ? 1 : 0,
+          members: [{ user_id: creator_id, username: creator_username, role: 'admin' }],
           pending_requests: [],
           created_at: new Date().toISOString()
         };
 
-        if (env.DB) {
-          await env.DB.prepare(`
-            INSERT INTO community_channels (id, creator_id, creator_name, creator_username, name, description, join_token, is_private, members, pending_requests, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, 1, ?, '[]', ?)
-          `).bind(newChan.id, newChan.creator_id, newChan.creator_name, newChan.creator_username, newChan.name, newChan.description, newChan.join_token, JSON.stringify(newChan.members), newChan.created_at).run();
-        } else {
-          memoryState.channels.unshift(newChan);
-        }
-
-        return new Response(JSON.stringify({ success: true, channel: newChan }), { headers: JSON_HEADERS });
-      } catch (err) {
-        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
-      }
-    }
-
-    // -------------------------------------------------------------
-    // COMMUNITY: CHANNEL REQUEST TO JOIN
-    // -------------------------------------------------------------
-    if ((path === '/api/community/channels/request' || (path.startsWith('/api/community/channels/') && path.endsWith('/request'))) && request.method === 'POST') {
-      try {
-        const body = await request.json();
-        const chanId = body.channel_id || body.id || path.split('/')[4];
-        const { user_id, name, username, avatar_url } = body;
-        if (!user_id || !chanId) {
-          return new Response(JSON.stringify({ error: 'User ID and Channel ID required.' }), { status: 400, headers: JSON_HEADERS });
-        }
-
-        const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        let requests = [];
-        let chan = null;
-
-        if (env.DB) {
-          chan = await env.DB.prepare('SELECT * FROM community_channels WHERE id = ?').bind(chanId).first();
-          if (!chan) return new Response(JSON.stringify({ error: 'Channel not found.' }), { status: 404, headers: JSON_HEADERS });
-          requests = chan.pending_requests ? JSON.parse(chan.pending_requests) : [];
-          if (!requests.some(r => r.user_id === user_id)) {
-            requests.push({ user_id, name: name || 'Citizen', username: username || 'user', avatar_url: avatar_url || null, requested_at: nowTime });
-            await env.DB.prepare('UPDATE community_channels SET pending_requests = ? WHERE id = ?').bind(JSON.stringify(requests), chanId).run();
-          }
-
-          const notifId = 'notif_chan_' + Date.now();
-          const notifMsg = `@${username || 'user'} (${name || 'Citizen'}) requested to participate in your private channel "${chan.name}"`;
-          const creatorUser = await env.DB.prepare('SELECT id, username FROM community_users WHERE id = ?').bind(chan.creator_id).first();
-          const creatorUname = String(creatorUser ? creatorUser.username : (chan.creator_username || '')).toLowerCase();
-
-          await env.DB.prepare(`
-            INSERT INTO community_notifications (id, recipient_username, sender_username, sender_name, message, is_read, type, channel_id, requester_id, created_at)
-            VALUES (?, ?, ?, ?, ?, 0, 'channel_request', ?, ?, ?)
-          `).bind(notifId, creatorUname, username || 'user', name || 'Citizen', notifMsg, chanId, user_id, nowTime).run();
-        } else {
-          chan = memoryState.channels.find(c => c.id === chanId);
-          if (!chan) return new Response(JSON.stringify({ error: 'Channel not found.' }), { status: 404, headers: JSON_HEADERS });
-          requests = chan.pending_requests || [];
-          if (!requests.some(r => r.user_id === user_id)) {
-            requests.push({ user_id, name: name || 'Citizen', username: username || 'user', avatar_url: avatar_url || null, requested_at: nowTime });
-            chan.pending_requests = requests;
-          }
-        }
-
-        return new Response(JSON.stringify({ success: true, requests }), { headers: JSON_HEADERS });
-      } catch (err) {
-        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
-      }
-    }
-
-    // -------------------------------------------------------------
-    // COMMUNITY: ADMIT PARTICIPANT TO CHANNEL
-    // -------------------------------------------------------------
-    if ((path === '/api/community/channels/admit' || (path.startsWith('/api/community/channels/') && path.endsWith('/admit'))) && request.method === 'POST') {
-      try {
-        const body = await request.json();
-        const chanId = body.channel_id || body.id || path.split('/')[4];
-        const { participant_user_id } = body;
-        if (!chanId || !participant_user_id) {
-          return new Response(JSON.stringify({ error: 'Channel ID and Participant User ID required.' }), { status: 400, headers: JSON_HEADERS });
-        }
-
-        let members = [];
-        let requests = [];
-
-        if (env.DB) {
-          const chan = await env.DB.prepare('SELECT * FROM community_channels WHERE id = ?').bind(chanId).first();
-          if (!chan) return new Response(JSON.stringify({ error: 'Channel not found.' }), { status: 404, headers: JSON_HEADERS });
-          members = chan.members ? JSON.parse(chan.members) : [];
-          requests = chan.pending_requests ? JSON.parse(chan.pending_requests) : [];
-          if (!members.includes(participant_user_id)) members.push(participant_user_id);
-          requests = requests.filter(r => r.user_id !== participant_user_id);
-          await env.DB.prepare('UPDATE community_channels SET members = ?, pending_requests = ? WHERE id = ?').bind(JSON.stringify(members), JSON.stringify(requests), chanId).run();
-
-          const targetUser = await env.DB.prepare('SELECT username FROM community_users WHERE id = ?').bind(participant_user_id).first();
-          if (targetUser) {
-            const notifId = 'notif_adm_' + Date.now();
-            const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const admitMsg = `✓ You have been approved to join private channel "${chan.name}"!`;
+        if (env?.DB) {
+          try {
             await env.DB.prepare(`
-              INSERT INTO community_notifications (id, recipient_username, sender_username, sender_name, message, is_read, type, channel_id, requester_id, created_at)
-              VALUES (?, ?, ?, ?, ?, 0, 'channel_admit', ?, ?, ?)
-            `).bind(notifId, targetUser.username.toLowerCase(), chan.creator_username, chan.creator_name, admitMsg, chanId, participant_user_id, nowTime).run();
-          }
-        } else {
-          const chan = memoryState.channels.find(c => c.id === chanId);
-          if (!chan) return new Response(JSON.stringify({ error: 'Channel not found.' }), { status: 404, headers: JSON_HEADERS });
-          members = chan.members || [];
-          requests = chan.pending_requests || [];
-          if (!members.includes(participant_user_id)) members.push(participant_user_id);
-          requests = requests.filter(r => r.user_id !== participant_user_id);
-          chan.members = members;
-          chan.pending_requests = requests;
+              INSERT INTO community_channels (id, creator_id, creator_name, creator_username, name, description, join_token, is_private, members, pending_requests, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(
+              newChan.id, newChan.creator_id, newChan.creator_name, newChan.creator_username,
+              newChan.name, newChan.description, newChan.join_token, newChan.is_private,
+              JSON.stringify(newChan.members), JSON.stringify(newChan.pending_requests), newChan.created_at
+            ).run();
+          } catch (e) {}
         }
 
-        return new Response(JSON.stringify({ success: true, members, requests }), { headers: JSON_HEADERS });
-      } catch (err) {
-        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
-      }
-    }
-
-    // -------------------------------------------------------------
-    // COMMUNITY: DENY PARTICIPANT FROM CHANNEL
-    // -------------------------------------------------------------
-    if ((path === '/api/community/channels/deny' || (path.startsWith('/api/community/channels/') && path.endsWith('/deny'))) && request.method === 'POST') {
-      try {
-        const body = await request.json();
-        const chanId = body.channel_id || body.id || path.split('/')[4];
-        const { participant_user_id } = body;
-        let requests = [];
-
-        if (env.DB) {
-          const chan = await env.DB.prepare('SELECT pending_requests FROM community_channels WHERE id = ?').bind(chanId).first();
-          if (!chan) return new Response(JSON.stringify({ error: 'Channel not found.' }), { status: 404, headers: JSON_HEADERS });
-          requests = chan.pending_requests ? JSON.parse(chan.pending_requests) : [];
-          requests = requests.filter(r => r.user_id !== participant_user_id);
-          await env.DB.prepare('UPDATE community_channels SET pending_requests = ? WHERE id = ?').bind(JSON.stringify(requests), chanId).run();
-        } else {
-          const chan = memoryState.channels.find(c => c.id === chanId);
-          if (!chan) return new Response(JSON.stringify({ error: 'Channel not found.' }), { status: 404, headers: JSON_HEADERS });
-          requests = (chan.pending_requests || []).filter(r => r.user_id !== participant_user_id);
-          chan.pending_requests = requests;
-        }
-
-        return new Response(JSON.stringify({ success: true, requests }), { headers: JSON_HEADERS });
-      } catch (err) {
-        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
-      }
-    }
-
-    // -------------------------------------------------------------
-    // COMMUNITY: CONTACT ADMIN / INFLUENCER PROOF QUERY
-    // -------------------------------------------------------------
-    if (path === '/api/community/contact' && request.method === 'POST') {
-      try {
-        const body = await request.json();
-        const queryId = 'qry_' + Date.now();
-        const newQuery = {
-          id: queryId,
-          type: body.type || 'user',
-          name: body.name,
-          email: body.email || null,
-          user_id: body.user_id || null,
-          username: body.username || null,
-          social_account_id: body.social_account_id || null,
-          message: body.message,
-          proof_file_name: body.proof_file_name || null,
-          proof_file: body.proof_file || null,
-          ip: clientIp,
-          status: 'pending',
-          created_at: new Date().toISOString()
-        };
-
-        if (env.DB) {
-          await env.DB.prepare(`
-            INSERT INTO community_contact_queries (id, type, name, email, user_id, username, social_account_id, message, proof_file_name, proof_file, ip, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
-          `).bind(newQuery.id, newQuery.type, newQuery.name, newQuery.email, newQuery.user_id, newQuery.username, newQuery.social_account_id, newQuery.message, newQuery.proof_file_name, newQuery.proof_file, newQuery.ip, newQuery.created_at).run();
-        } else {
-          memoryState.adminQueries.unshift(newQuery);
-        }
-
-        return new Response(JSON.stringify({ success: true, query: newQuery }), { headers: JSON_HEADERS });
+        memoryState.channels.push(newChan);
+        broadcastSSE({ type: 'CHANNEL_CREATED', channel: newChan });
+        return new Response(JSON.stringify({ success: true, channel: newChan }), { headers: JSON_HEADERS });
       } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
       }
@@ -836,7 +829,15 @@ export default {
         const safeExt = (mimeType?.split('/')[1] || filename?.split('.').pop() || 'bin').replace(/[^a-zA-Z0-9]/g, '').slice(0, 8);
         const uniqueName = 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.' + safeExt;
 
-        if (env.DB) {
+        // Store in-memory map
+        memoryState.files.set(uniqueName, {
+          mime_type: mimeType || 'application/octet-stream',
+          data,
+          created_at: new Date().toISOString()
+        });
+
+        // Store in DB if available
+        if (env?.DB) {
           try {
             await env.DB.prepare(`
               INSERT OR REPLACE INTO community_files (filename, mime_type, data, size_kb, created_at)
@@ -859,351 +860,224 @@ export default {
 
     if (path.startsWith('/api/community/files/') && request.method === 'GET') {
       const fileName = path.split('/')[4];
-      if (env.DB) {
+      let row = null;
+
+      if (env?.DB) {
         try {
-          const row = await env.DB.prepare('SELECT mime_type, data FROM community_files WHERE filename = ?').bind(fileName).first();
-          if (row && row.data) {
-            let buffer;
-            if (row.data.startsWith('data:')) {
-              const commaIdx = row.data.indexOf(',');
-              buffer = Uint8Array.from(atob(row.data.slice(commaIdx + 1)), c => c.charCodeAt(0));
-            } else {
-              buffer = Uint8Array.from(atob(row.data), c => c.charCodeAt(0));
-            }
-            return new Response(buffer, {
-              headers: {
-                ...CORS_HEADERS,
-                'Content-Type': row.mime_type || 'application/octet-stream',
-                'Cache-Control': 'public, max-age=31536000, immutable'
-              }
-            });
-          }
+          row = await env.DB.prepare('SELECT mime_type, data FROM community_files WHERE filename = ?').bind(fileName).first();
         } catch (e) {}
       }
+
+      if (!row && memoryState.files.has(fileName)) {
+        row = memoryState.files.get(fileName);
+      }
+
+      if (row && row.data) {
+        let buffer;
+        if (row.data.startsWith('data:')) {
+          const commaIdx = row.data.indexOf(',');
+          buffer = Uint8Array.from(atob(row.data.slice(commaIdx + 1)), c => c.charCodeAt(0));
+        } else {
+          buffer = Uint8Array.from(atob(row.data), c => c.charCodeAt(0));
+        }
+        return new Response(buffer, {
+          headers: {
+            ...CORS_HEADERS,
+            'Content-Type': row.mime_type || 'application/octet-stream',
+            'Cache-Control': 'public, max-age=31536000, immutable'
+          }
+        });
+      }
+
       return new Response('File not found', { status: 404, headers: CORS_HEADERS });
     }
 
     // -------------------------------------------------------------
-    // ADMIN AUTHENTICATION & ACCESS VERIFICATION
+    // GENERAL STATS & LIVE TRAFFIC
     // -------------------------------------------------------------
-    if (path === '/api/admin/check-access' && request.method === 'GET') {
+    if (path === '/api/stats' && request.method === 'GET') {
+      let entCount = memoryState.entities.length;
+      let repCount = memoryState.reports.length;
+      let natCount = memoryState.nationalists.length;
+
+      if (env?.DB) {
+        try {
+          const e = await env.DB.prepare('SELECT COUNT(*) as c FROM entities').first();
+          if (e?.c) entCount = e.c;
+          const r = await env.DB.prepare('SELECT COUNT(*) as c FROM community_contact_queries').first();
+          if (r?.c) repCount = r.c;
+          const n = await env.DB.prepare('SELECT COUNT(*) as c FROM nationalist_influencers').first();
+          if (n?.c) natCount = n.c;
+        } catch (e) {}
+      }
+
       return new Response(JSON.stringify({
-        allowed: true,
-        ip: clientIp,
-        subnet: '152.59.*.*'
+        totalEntities: entCount || 42,
+        totalExposed: entCount || 42,
+        verifiedEntities: Math.round((entCount || 42) * 0.85),
+        totalNationalists: natCount || 88,
+        totalReports: repCount || 12,
+        pendingReports: repCount || 3,
+        blockedIps: memoryState.blockedIps.size || 24,
+        totalVotes: 12480,
+        activeMembers: memoryState.users.length,
+        liveTrafficOnline: memoryState.sseWriters.size || 34
       }), { headers: JSON_HEADERS });
     }
 
-    if (path === '/api/admin/login' && request.method === 'POST') {
-      try {
-        const body = await request.json().catch(() => ({}));
-        const email = (body.email || '').trim().toLowerCase();
-        const password = (body.password || '').trim();
-        const secretKey = (body.secretKey || '').trim();
-
-        let isAuthed = false;
-        let authedEmail = 'omkumar.working@gmail.com';
-
-        // 1. Direct Master Credentials
-        if (
-          (email === 'omkumar.working@gmail.com' && (password === 'Q0gng04bk3' || password === 'JaiHindBharatMataKiJai2024!')) ||
-          (secretKey === 'JaiHindBharatMataKiJai2024!' || secretKey === 'Q0gng04bk3') ||
-          (email === 'admin@domain.com' && password === 'Q0gng04bk3')
-        ) {
-          isAuthed = true;
-          authedEmail = email || 'omkumar.working@gmail.com';
-        }
-
-        // 2. Database lookup in D1 admin_users or community_users
-        if (!isAuthed && env.DB && email && password) {
-          try {
-            const adminRow = await env.DB.prepare('SELECT * FROM admin_users WHERE LOWER(email) = LOWER(?)').bind(email).first();
-            if (adminRow && (adminRow.password_hash === password || adminRow.password_hash === 'Q0gng04bk3')) {
-              isAuthed = true;
-              authedEmail = adminRow.email;
-            } else {
-              const commRow = await env.DB.prepare('SELECT * FROM community_users WHERE LOWER(email) = LOWER(?) AND is_admin = 1').bind(email).first();
-              if (commRow && commRow.password_hash === password) {
-                isAuthed = true;
-                authedEmail = commRow.email;
-              }
-            }
-          } catch (e) {
-            console.error('D1 admin check error:', e);
-          }
-        }
-
-        if (!isAuthed) {
-          return new Response(JSON.stringify({ success: false, error: 'Incorrect Administrator Email or Password.' }), {
-            status: 401,
-            headers: JSON_HEADERS
-          });
-        }
-
-        const sessionToken = 'ep-adm-' + crypto.randomUUID().replace(/-/g, '') + Date.now().toString(36);
-        memoryState.activeAdminTokens.add(sessionToken);
-
-        return new Response(JSON.stringify({
-          success: true,
-          message: 'Authentication successful. Welcome Commander.',
-          token: sessionToken,
-          email: authedEmail
-        }), { headers: JSON_HEADERS });
-      } catch (err) {
-        return new Response(JSON.stringify({ success: false, error: err.message }), { status: 500, headers: JSON_HEADERS });
-      }
+    if (path === '/api/live-count' && request.method === 'GET') {
+      return new Response(JSON.stringify({ count: Math.max(25, memoryState.sseWriters.size + 34) }), { headers: JSON_HEADERS });
     }
 
-    // -------------------------------------------------------------
-    // COMMUNITY ADMIN: BAN USER & IP
-    // -------------------------------------------------------------
-    if (path === '/api/community/admin/ban' && request.method === 'POST') {
-      try {
-        const body = await request.json().catch(() => ({}));
-        const { user_id, target_username, admin_token, admin_email, admin_password } = body;
-        const isAuthed = isAuthorizedAdmin(request) ||
-          (admin_token && (memoryState.activeAdminTokens.has(admin_token) || String(admin_token).startsWith('ep-adm-'))) ||
-          (admin_email === 'omkumar.working@gmail.com' && (admin_password === 'Q0gng04bk3' || admin_password === 'JaiHindBharatMataKiJai2024!'));
-
-        if (!isAuthed) {
-          return new Response(JSON.stringify({ error: 'Unauthorized admin credentials.' }), { status: 403, headers: JSON_HEADERS });
-        }
-
-        const u = memoryState.users.find(x => x.id === user_id || x.username === target_username);
-        if (u) {
-          u.is_banned = 1;
-          if (u.ip_address) memoryState.blockedIps.add(u.ip_address);
-        }
-
-        if (env.DB) {
-          try {
-            await env.DB.prepare('UPDATE community_users SET is_banned = 1 WHERE id = ? OR username = ?').bind(user_id, target_username).run();
-            await env.DB.prepare('DELETE FROM community_messages WHERE user_id = ?').bind(user_id).run();
-          } catch (e) {}
-        }
-
-        broadcastSSE({
-          type: 'USER_BANNED',
-          user_id,
-          username: target_username
-        });
-
-        return new Response(JSON.stringify({ success: true, banned_user_id: user_id }), { headers: JSON_HEADERS });
-      } catch (err) {
-        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
-      }
-    }
-
-    // -------------------------------------------------------------
-    // COMMUNITY ADMIN: VERIFY BADGE
-    // -------------------------------------------------------------
-    if (path === '/api/community/admin/verify-badge' && request.method === 'POST') {
-      try {
-        const body = await request.json().catch(() => ({}));
-        const { user_id, badge_type, admin_token, admin_email, admin_password } = body;
-        const isAuthed = isAuthorizedAdmin(request) ||
-          (admin_token && (memoryState.activeAdminTokens.has(admin_token) || String(admin_token).startsWith('ep-adm-'))) ||
-          (admin_email === 'omkumar.working@gmail.com' && (admin_password === 'Q0gng04bk3' || admin_password === 'JaiHindBharatMataKiJai2024!'));
-
-        if (!isAuthed) {
-          return new Response(JSON.stringify({ error: 'Unauthorized admin credentials.' }), { status: 403, headers: JSON_HEADERS });
-        }
-
-        let newBadge = badge_type || 'influencer';
-        const u = memoryState.users.find(x => x.id === user_id);
-        if (u) {
-          newBadge = u.verified_type === badge_type ? 'none' : badge_type;
-          u.verified_type = newBadge;
-        }
-
-        if (env.DB) {
-          try {
-            await env.DB.prepare('UPDATE community_users SET verified_type = ? WHERE id = ?').bind(newBadge, user_id).run();
-          } catch (e) {}
-        }
-
-        broadcastSSE({
-          type: 'USER_UPDATED',
-          user_id,
-          verified_type: newBadge
-        });
-
-        return new Response(JSON.stringify({ success: true, verified_type: newBadge }), { headers: JSON_HEADERS });
-      } catch (err) {
-        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
-      }
-    }
-
-    // -------------------------------------------------------------
-    // ADMIN: REPORTS
-    // -------------------------------------------------------------
-    if (path === '/api/admin/reports' && request.method === 'GET') {
-      if (!isAuthorizedAdmin(request)) {
-        return new Response(JSON.stringify({ error: 'Unauthorized admin' }), { status: 401, headers: JSON_HEADERS });
-      }
-      if (env.DB) {
-        try {
-          const { results } = await env.DB.prepare('SELECT * FROM reports ORDER BY created_at DESC').all();
-          if (results) return new Response(JSON.stringify(results), { headers: JSON_HEADERS });
-        } catch (e) {}
-      }
-      return new Response(JSON.stringify(memoryState.reports || []), { headers: JSON_HEADERS });
-    }
-
-    if (path.startsWith('/api/admin/reports/') && request.method === 'PATCH') {
-      if (!isAuthorizedAdmin(request)) {
-        return new Response(JSON.stringify({ error: 'Unauthorized admin' }), { status: 401, headers: JSON_HEADERS });
-      }
-      const repId = path.split('/')[4];
-      const { status } = await request.json().catch(() => ({ status: 'resolved' }));
-      if (env.DB) {
-        try {
-          await env.DB.prepare('UPDATE reports SET status = ? WHERE id = ?').bind(status || 'resolved', repId).run();
-        } catch (e) {}
-      }
-      const rep = (memoryState.reports || []).find(r => r.id === repId);
-      if (rep) rep.status = status;
-      return new Response(JSON.stringify({ success: true, message: `Report marked as ${status}` }), { headers: JSON_HEADERS });
-    }
-
-    // -------------------------------------------------------------
-    // ADMIN: NATIONALIST INFLUENCERS
-    // -------------------------------------------------------------
-    if (path === '/api/admin/nationalist-influencers' && request.method === 'GET') {
-      if (env.DB) {
-        try {
-          const { results } = await env.DB.prepare('SELECT * FROM nationalist_influencers ORDER BY created_at DESC').all();
-          if (results && results.length > 0) return new Response(JSON.stringify(results), { headers: JSON_HEADERS });
-        } catch (e) {}
-      }
-      return new Response(JSON.stringify(memoryState.nationalists || []), { headers: JSON_HEADERS });
-    }
-
-    if (path === '/api/admin/nationalist-influencers' && request.method === 'POST') {
-      if (!isAuthorizedAdmin(request)) {
-        return new Response(JSON.stringify({ error: 'Unauthorized admin' }), { status: 401, headers: JSON_HEADERS });
-      }
-      const body = await request.json().catch(() => ({}));
-      const newNat = {
-        id: 'nat-' + Date.now(),
-        name: body.name || 'Nationalist Creator',
-        handle_x: body.handle_x || null,
-        handle_yt: body.handle_yt || null,
-        handle_insta: body.handle_insta || null,
-        other_links: body.other_links || null,
-        avatar_url: body.avatar_url || null,
-        category: body.category || 'Nationalist Creator',
-        description: body.description || '',
-        status: body.status || 'approved',
-        is_verified: 1,
-        upvotes: 0,
-        created_at: new Date().toISOString()
-      };
-      memoryState.nationalists.unshift(newNat);
-      if (env.DB) {
-        try {
-          await env.DB.prepare(`
-            INSERT INTO nationalist_influencers (id, name, handle_x, handle_yt, handle_insta, other_links, avatar_url, category, description, status, is_verified, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `).bind(newNat.id, newNat.name, newNat.handle_x, newNat.handle_yt, newNat.handle_insta, newNat.other_links, newNat.avatar_url, newNat.category, newNat.description, newNat.status, newNat.is_verified, newNat.created_at, newNat.created_at).run();
-        } catch (e) {}
-      }
-      return new Response(JSON.stringify({ success: true, influencer: newNat }), { headers: JSON_HEADERS });
-    }
-
-    if (path.startsWith('/api/admin/nationalist-influencers/') && request.method === 'DELETE') {
-      if (!isAuthorizedAdmin(request)) {
-        return new Response(JSON.stringify({ error: 'Unauthorized admin' }), { status: 401, headers: JSON_HEADERS });
-      }
-      const natId = path.split('/')[4];
-      memoryState.nationalists = memoryState.nationalists.filter(n => n.id !== natId);
-      if (env.DB) {
-        try {
-          await env.DB.prepare('DELETE FROM nationalist_influencers WHERE id = ?').bind(natId).run();
-        } catch (e) {}
-      }
-      return new Response(JSON.stringify({ success: true }), { headers: JSON_HEADERS });
-    }
-
-    // -------------------------------------------------------------
-    // ADMIN: SHIELD ATTEMPTS & BLOCKED IPS
-    // -------------------------------------------------------------
-    if (path === '/api/admin/shield-attempts' && request.method === 'GET') {
-      let attempts = memoryState.shieldAttempts || [];
-      let blockedIps = Array.from(memoryState.blockedIps);
-      if (env.DB) {
-        try {
-          const attRes = await env.DB.prepare('SELECT * FROM blocked_attempts ORDER BY created_at DESC LIMIT 50').all();
-          if (attRes.results) attempts = attRes.results;
-          const blkRes = await env.DB.prepare('SELECT ip FROM blocked_ips ORDER BY created_at DESC').all();
-          if (blkRes.results) blockedIps = blkRes.results.map(r => r.ip);
-        } catch (e) {}
-      }
-      return new Response(JSON.stringify({ attempts, blockedIps }), { headers: JSON_HEADERS });
-    }
-
-    if (path === '/api/admin/block-ip' && request.method === 'POST') {
-      if (!isAuthorizedAdmin(request)) {
-        return new Response(JSON.stringify({ error: 'Unauthorized admin' }), { status: 401, headers: JSON_HEADERS });
-      }
-      const { ip, reason } = await request.json().catch(() => ({}));
-      if (ip) {
-        memoryState.blockedIps.add(ip);
-        if (env.DB) {
-          try {
-            await env.DB.prepare('INSERT OR REPLACE INTO blocked_ips (ip, reason, created_at) VALUES (?, ?, ?)').bind(ip, reason || 'Manually blocked by Admin', new Date().toISOString()).run();
-          } catch (e) {}
-        }
-      }
-      return new Response(JSON.stringify({ success: true, message: `IP ${ip} blocked.` }), { headers: JSON_HEADERS });
-    }
-
-    if (path.startsWith('/api/admin/block-ip/') && request.method === 'DELETE') {
-      if (!isAuthorizedAdmin(request)) {
-        return new Response(JSON.stringify({ error: 'Unauthorized admin' }), { status: 401, headers: JSON_HEADERS });
-      }
-      const unblockIp = decodeURIComponent(path.split('/')[4] || '');
-      if (unblockIp) {
-        memoryState.blockedIps.delete(unblockIp);
-        if (env.DB) {
-          try {
-            await env.DB.prepare('DELETE FROM blocked_ips WHERE ip = ?').bind(unblockIp).run();
-          } catch (e) {}
-        }
-      }
-      return new Response(JSON.stringify({ success: true, message: `IP ${unblockIp} unblocked.` }), { headers: JSON_HEADERS });
-    }
-
-    // -------------------------------------------------------------
-    // ADMIN: LIVE TRAFFIC & USER IPS
-    // -------------------------------------------------------------
     if (path === '/api/admin/live-traffic' && request.method === 'GET') {
+      const activeCount = memoryState.sseWriters.size || 34;
       const data = {
-        totalVisits: 1480 + (memoryState.trafficLogs?.length || 0),
-        activeNow: memoryState.sseWriters?.size || 24,
+        totalVisits: 1480 + memoryState.trafficLogs.length,
+        totalUniqueVisitors: 1120 + Math.floor(memoryState.trafficLogs.length * 0.7),
+        activeNow: activeCount,
+        liveCount: activeCount,
         deviceBreakdown: { mobile: 68, desktop: 28, tablet: 4 },
-        visitors: (memoryState.trafficLogs || []).slice(0, 50),
-        recentLogs: (memoryState.activityLogs || []).slice(0, 50)
+        visitors: memoryState.trafficLogs.slice(0, 50),
+        recentLogs: memoryState.activityLogs.slice(0, 50)
       };
       return new Response(JSON.stringify(data), { headers: JSON_HEADERS });
     }
 
-    if (path === '/api/admin/users-ips' && request.method === 'GET') {
-      let userList = memoryState.users;
-      if (env.DB) {
-        try {
-          const { results } = await env.DB.prepare('SELECT id, name, username, email, phone, avatar_url, verified_type, ip_address, is_admin, is_banned, created_at FROM community_users ORDER BY created_at DESC').all();
-          if (results) userList = results;
-        } catch (e) {}
+    if (path === '/api/track-visit' && request.method === 'POST') {
+      try {
+        const body = await request.json().catch(() => ({}));
+        const userAgent = request.headers.get('user-agent') || body.userAgent || 'Mozilla/5.0';
+        const isMobile = /mobile|iphone|android/i.test(userAgent);
+
+        const newLog = {
+          id: 'trf_' + Date.now(),
+          ip: clientIp,
+          page: body.page || body.path || '/',
+          userAgent,
+          deviceType: isMobile ? 'mobile' : 'desktop',
+          browser: isMobile ? 'Mobile Browser' : 'Desktop Browser',
+          os: isMobile ? 'Mobile OS' : 'Desktop OS',
+          country: request.cf?.country || 'IN',
+          city: request.cf?.city || 'New Delhi',
+          timestamp: new Date().toISOString()
+        };
+
+        memoryState.trafficLogs.unshift(newLog);
+        if (memoryState.trafficLogs.length > 200) memoryState.trafficLogs.pop();
+
+        if (env?.DB) {
+          try {
+            await env.DB.prepare(`
+              INSERT INTO visit_traffic (id, ip, page, user_agent, country, created_at)
+              VALUES (?, ?, ?, ?, ?, ?)
+            `).bind(newLog.id, newLog.ip, newLog.page, newLog.userAgent, newLog.country, newLog.timestamp).run();
+          } catch (e) {}
+        }
+
+        return new Response(JSON.stringify({ success: true }), { headers: JSON_HEADERS });
+      } catch (err) {
+        return new Response(JSON.stringify({ success: true }), { headers: JSON_HEADERS });
       }
-      return new Response(JSON.stringify(userList), { headers: JSON_HEADERS });
     }
 
     // -------------------------------------------------------------
-    // ENTITIES DIRECTORY (PUBLIC & ADMIN)
+    // CITIZEN GOVT POLL 2029
+    // -------------------------------------------------------------
+    if (path === '/api/govt-poll' && request.method === 'GET') {
+      return new Response(JSON.stringify(memoryState.govtPoll), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/govt-poll/vote' && request.method === 'POST') {
+      try {
+        const body = await request.json().catch(() => ({}));
+        const { choice } = body;
+
+        if (choice === 'yes') {
+          memoryState.govtPoll.yesVotes += 1;
+        } else if (choice === 'no') {
+          memoryState.govtPoll.noVotes += 1;
+        }
+        memoryState.govtPoll.totalVotes = memoryState.govtPoll.yesVotes + memoryState.govtPoll.noVotes;
+        memoryState.govtPoll.yesPercent = Math.round((memoryState.govtPoll.yesVotes / memoryState.govtPoll.totalVotes) * 100);
+        memoryState.govtPoll.noPercent = 100 - memoryState.govtPoll.yesPercent;
+
+        return new Response(JSON.stringify({
+          ...memoryState.govtPoll,
+          userVoted: choice
+        }), { headers: JSON_HEADERS });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
+      }
+    }
+
+    if (path === '/api/admin/govt-poll' && request.method === 'GET') {
+      return new Response(JSON.stringify(memoryState.govtPoll), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/admin/govt-poll' && request.method === 'PUT') {
+      if (!isAuthorizedAdmin(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      }
+      const body = await request.json().catch(() => ({}));
+      if (typeof body.yesVotes === 'number') memoryState.govtPoll.yesVotes = body.yesVotes;
+      if (typeof body.noVotes === 'number') memoryState.govtPoll.noVotes = body.noVotes;
+      memoryState.govtPoll.totalVotes = memoryState.govtPoll.yesVotes + memoryState.govtPoll.noVotes;
+      memoryState.govtPoll.yesPercent = Math.round((memoryState.govtPoll.yesVotes / memoryState.govtPoll.totalVotes) * 100);
+      memoryState.govtPoll.noPercent = 100 - memoryState.govtPoll.yesPercent;
+
+      return new Response(JSON.stringify({ success: true, poll: memoryState.govtPoll }), { headers: JSON_HEADERS });
+    }
+
+    // -------------------------------------------------------------
+    // LIVE BULLETIN & ANNOUNCEMENTS
+    // -------------------------------------------------------------
+    if (path === '/api/bulletin' && request.method === 'GET') {
+      return new Response(JSON.stringify(memoryState.bulletin), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/admin/bulletin' && request.method === 'PUT') {
+      if (!isAuthorizedAdmin(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      }
+      const body = await request.json().catch(() => ({}));
+      memoryState.bulletin = {
+        is_active: body.is_active !== undefined ? (body.is_active ? 1 : 0) : 1,
+        message: body.message || memoryState.bulletin.message
+      };
+      return new Response(JSON.stringify({ success: true, bulletin: memoryState.bulletin }), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/announcement' && request.method === 'GET') {
+      return new Response(JSON.stringify({ announcement: memoryState.announcement }), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/admin/announcement' && request.method === 'POST') {
+      if (!isAuthorizedAdmin(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      }
+      const body = await request.json().catch(() => ({}));
+      memoryState.announcement = {
+        is_active: 1,
+        title: body.title || '🔴 LIVE ALERT / व्यवस्थापक सूचना',
+        message: body.message || '',
+        type: body.type || 'warning'
+      };
+      return new Response(JSON.stringify({ success: true, announcement: memoryState.announcement }), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/admin/announcement' && request.method === 'DELETE') {
+      if (!isAuthorizedAdmin(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      }
+      memoryState.announcement.is_active = 0;
+      return new Response(JSON.stringify({ success: true }), { headers: JSON_HEADERS });
+    }
+
+    // -------------------------------------------------------------
+    // PUBLIC & ADMIN ENTITIES (PROPAGANDUS DATABASE)
     // -------------------------------------------------------------
     if (path === '/api/entities' && request.method === 'GET') {
-      if (env.DB) {
+      if (env?.DB) {
         try {
           const { results } = await env.DB.prepare('SELECT * FROM entities ORDER BY upvotes DESC').all();
           if (results && results.length > 0) return new Response(JSON.stringify(results), { headers: JSON_HEADERS });
@@ -1212,41 +1086,131 @@ export default {
       return new Response(JSON.stringify(memoryState.entities || []), { headers: JSON_HEADERS });
     }
 
+    // Public Entity Submission with Patriot Shield
+    if (path === '/api/entities' && request.method === 'POST') {
+      try {
+        const body = await request.json().catch(() => ({}));
+        const { name, handle_x, handle_yt, handle_insta, categories, party, institution, narrative, fact_check, proof_url, _hp_security_check } = body;
+
+        // Anti-Bot Honeypot
+        if (_hp_security_check) {
+          return new Response(JSON.stringify({ error: 'Bot detected' }), { status: 400, headers: JSON_HEADERS });
+        }
+
+        if (!name || !narrative) {
+          return new Response(JSON.stringify({ error: 'Entity name and narrative are required' }), { status: 400, headers: JSON_HEADERS });
+        }
+
+        // Patriot Shield Protection
+        const checkTarget = `${name} ${handle_x || ''} ${handle_yt || ''} ${handle_insta || ''}`;
+        if (PROTECTED_USERNAMES_REGEX.test(checkTarget)) {
+          memoryState.shieldAttempts.push({
+            id: 'att_' + Date.now(),
+            ip: clientIp,
+            attempted_name: name,
+            details: `Attempted to defame protected leader/deity: ${name}`,
+            created_at: new Date().toISOString()
+          });
+          return new Response(JSON.stringify({
+            isProtectedPatriot: true,
+            strike: 1,
+            message: 'Rashtra Hit Sarvopari: This respected national leader / deity cannot be added to this database.',
+            speechText: 'Rashtra Hit Sarvopari. You cannot add this respected nationalist leader to this database.'
+          }), { status: 400, headers: JSON_HEADERS });
+        }
+
+        const newEnt = {
+          id: 'ent_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+          name: name.trim(),
+          handle_x: handle_x || '',
+          handle_yt: handle_yt || '',
+          handle_insta: handle_insta || '',
+          categories: categories || 'General Disinformation',
+          party: party || null,
+          institution: institution || null,
+          narrative: narrative.trim(),
+          fact_check: fact_check || null,
+          proof_url: proof_url || null,
+          upvotes: 1,
+          is_verified: 0,
+          created_at: new Date().toISOString()
+        };
+
+        if (env?.DB) {
+          try {
+            await env.DB.prepare(`
+              INSERT INTO entities (id, name, handle_x, handle_yt, handle_insta, categories, party, institution, narrative, fact_check, proof_url, upvotes, is_verified, submitted_by_ip, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(
+              newEnt.id, newEnt.name, newEnt.handle_x, newEnt.handle_yt, newEnt.handle_insta,
+              newEnt.categories, newEnt.party, newEnt.institution, newEnt.narrative,
+              newEnt.fact_check, newEnt.proof_url, newEnt.upvotes, newEnt.is_verified,
+              clientIp, newEnt.created_at, newEnt.created_at
+            ).run();
+          } catch (e) {}
+        }
+
+        memoryState.entities.unshift(newEnt);
+        return new Response(JSON.stringify({ success: true, entity: newEnt }), { headers: JSON_HEADERS });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
+      }
+    }
+
+    // Entity Upvote
+    if (path.startsWith('/api/entities/') && path.endsWith('/upvote') && request.method === 'POST') {
+      const entId = path.split('/')[3];
+      const ent = memoryState.entities.find(e => e.id === entId);
+      if (ent) {
+        ent.upvotes = (ent.upvotes || 0) + 1;
+        return new Response(JSON.stringify({ success: true, upvotes: ent.upvotes }), { headers: JSON_HEADERS });
+      }
+      return new Response(JSON.stringify({ success: true, upvotes: 1 }), { headers: JSON_HEADERS });
+    }
+
     if (path === '/api/admin/entities' && request.method === 'POST') {
       if (!isAuthorizedAdmin(request)) {
         return new Response(JSON.stringify({ error: 'Unauthorized admin' }), { status: 401, headers: JSON_HEADERS });
       }
       const b = await request.json().catch(() => ({}));
       const newEnt = {
-        id: 'ent-' + Date.now(),
-        name: b.name || 'Propaganda Target',
-        handle_x: b.handle_x || null,
-        handle_yt: b.handle_yt || null,
-        handle_insta: b.handle_insta || null,
-        contact_phone: b.contact_phone || null,
-        contact_email: b.contact_email || null,
-        other_links: b.other_links || null,
-        avatar_url: b.avatar_url || null,
-        categories: b.categories || 'Toolkit Disinformation',
-        party: b.party || 'Anti-India Lobby',
-        institution: b.institution || 'Offshore Syndicate',
+        id: b.id || ('ent_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)),
+        name: b.name || 'Unnamed',
+        handle_x: b.handle_x || '',
+        handle_yt: b.handle_yt || '',
+        handle_insta: b.handle_insta || '',
+        contact_phone: b.contact_phone || '',
+        contact_email: b.contact_email || '',
+        other_links: b.other_links || '',
+        avatar_url: b.avatar_url || '',
+        categories: b.categories || 'Coordinated Narrative',
+        party: b.party || '',
+        institution: b.institution || '',
         narrative: b.narrative || '',
-        fact_check: b.fact_check || null,
-        proof_url: b.proof_url || null,
-        upvotes: 0,
-        is_verified: 1,
+        fact_check: b.fact_check || '',
+        proof_url: b.proof_url || '',
+        upvotes: b.upvotes || 0,
+        is_verified: b.is_verified !== undefined ? b.is_verified : 1,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
-      memoryState.entities.unshift(newEnt);
-      if (env.DB) {
+
+      const existingIdx = memoryState.entities.findIndex(e => e.id === newEnt.id);
+      if (existingIdx >= 0) {
+        memoryState.entities[existingIdx] = { ...memoryState.entities[existingIdx], ...newEnt };
+      } else {
+        memoryState.entities.unshift(newEnt);
+      }
+
+      if (env?.DB) {
         try {
           await env.DB.prepare(`
-            INSERT INTO entities (id, name, handle_x, handle_yt, handle_insta, contact_phone, contact_email, other_links, avatar_url, categories, party, institution, narrative, fact_check, proof_url, upvotes, is_verified, created_at, updated_at)
+            INSERT OR REPLACE INTO entities (id, name, handle_x, handle_yt, handle_insta, contact_phone, contact_email, other_links, avatar_url, categories, party, institution, narrative, fact_check, proof_url, upvotes, is_verified, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).bind(newEnt.id, newEnt.name, newEnt.handle_x, newEnt.handle_yt, newEnt.handle_insta, newEnt.contact_phone, newEnt.contact_email, newEnt.other_links, newEnt.avatar_url, newEnt.categories, newEnt.party, newEnt.institution, newEnt.narrative, newEnt.fact_check, newEnt.proof_url, newEnt.upvotes, newEnt.is_verified, newEnt.created_at, newEnt.updated_at).run();
         } catch (e) {}
       }
+
       return new Response(JSON.stringify({ success: true, entity: newEnt }), { headers: JSON_HEADERS });
     }
 
@@ -1254,81 +1218,385 @@ export default {
       if (!isAuthorizedAdmin(request)) {
         return new Response(JSON.stringify({ error: 'Unauthorized admin' }), { status: 401, headers: JSON_HEADERS });
       }
-      const entId = path.split('/')[4];
-      memoryState.entities = memoryState.entities.filter(e => e.id !== entId);
-      if (env.DB) {
+      const id = path.split('/')[4];
+      memoryState.entities = memoryState.entities.filter(e => e.id !== id);
+      if (env?.DB) {
         try {
-          await env.DB.prepare('DELETE FROM entities WHERE id = ?').bind(entId).run();
+          await env.DB.prepare('DELETE FROM entities WHERE id = ?').bind(id).run();
         } catch (e) {}
       }
       return new Response(JSON.stringify({ success: true }), { headers: JSON_HEADERS });
     }
 
     // -------------------------------------------------------------
-    // PLAYLIST, CATEGORIES, ANNOUNCEMENTS & SECURITY
+    // NATIONALIST INFLUENCERS DIRECTORY
     // -------------------------------------------------------------
-    if (path === '/api/admin/playlist' && request.method === 'GET') {
-      return new Response(JSON.stringify(memoryState.playlist || []), { headers: JSON_HEADERS });
+    if (path === '/api/nationalist-influencers' && request.method === 'GET') {
+      if (env?.DB) {
+        try {
+          const { results } = await env.DB.prepare("SELECT * FROM nationalist_influencers WHERE status = 'approved' ORDER BY upvotes DESC").all();
+          if (results && results.length > 0) return new Response(JSON.stringify(results), { headers: JSON_HEADERS });
+        } catch (e) {}
+      }
+      const approved = memoryState.nationalists.filter(n => n.status === 'approved');
+      return new Response(JSON.stringify(approved), { headers: JSON_HEADERS });
     }
 
-    if (path === '/api/admin/categories' && request.method === 'GET') {
-      return new Response(JSON.stringify(memoryState.categories || []), { headers: JSON_HEADERS });
+    // Suggest Nationalist Influencer
+    if (path === '/api/nationalist-influencers/suggest' && request.method === 'POST') {
+      try {
+        const body = await request.json().catch(() => ({}));
+        const newNat = {
+          id: 'nat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+          name: body.name || 'Unnamed Patriot',
+          handle_x: body.handle_x || '',
+          handle_yt: body.handle_yt || '',
+          handle_insta: body.handle_insta || '',
+          other_links: body.other_links || '',
+          avatar_url: body.avatar_url || '',
+          category: body.category || 'Nationalist Creator',
+          description: body.description || '',
+          status: 'pending',
+          is_verified: 0,
+          upvotes: 1,
+          created_at: new Date().toISOString()
+        };
+
+        if (env?.DB) {
+          try {
+            await env.DB.prepare(`
+              INSERT INTO nationalist_influencers (id, name, handle_x, handle_yt, handle_insta, other_links, avatar_url, category, description, status, is_verified, submitted_by_ip, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(
+              newNat.id, newNat.name, newNat.handle_x, newNat.handle_yt, newNat.handle_insta,
+              newNat.other_links, newNat.avatar_url, newNat.category, newNat.description,
+              newNat.status, newNat.is_verified, clientIp, newNat.created_at, newNat.created_at
+            ).run();
+          } catch (e) {}
+        }
+
+        memoryState.nationalists.push(newNat);
+        return new Response(JSON.stringify({ success: true, nationalist: newNat }), { headers: JSON_HEADERS });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
+      }
     }
 
-    if (path === '/api/admin/security' && request.method === 'GET') {
-      return new Response(JSON.stringify({
-        blockedCount: memoryState.blockedIps.size,
-        activeThreats: 0,
-        subnet: '152.59.*.*',
-        status: 'SECURE'
-      }), { headers: JSON_HEADERS });
+    // Upvote Nationalist Creator
+    if (path.startsWith('/api/nationalist-influencers/') && path.endsWith('/upvote') && request.method === 'POST') {
+      const natId = path.split('/')[3];
+      const nat = memoryState.nationalists.find(n => n.id === natId);
+      if (nat) {
+        nat.upvotes = (nat.upvotes || 0) + 1;
+        return new Response(JSON.stringify({ success: true, upvotes: nat.upvotes }), { headers: JSON_HEADERS });
+      }
+      return new Response(JSON.stringify({ success: true, upvotes: 1 }), { headers: JSON_HEADERS });
     }
 
-    if (path === '/api/admin/credentials' && (request.method === 'PUT' || request.method === 'POST')) {
+    // Admin Nationalist Influencers CRUD
+    if (path === '/api/admin/nationalist-influencers' && request.method === 'GET') {
+      if (!isAuthorizedAdmin(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      }
+      if (env?.DB) {
+        try {
+          const { results } = await env.DB.prepare('SELECT * FROM nationalist_influencers ORDER BY created_at DESC').all();
+          if (results && results.length > 0) return new Response(JSON.stringify(results), { headers: JSON_HEADERS });
+        } catch (e) {}
+      }
+      return new Response(JSON.stringify(memoryState.nationalists), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/admin/nationalist-influencers' && request.method === 'POST') {
       if (!isAuthorizedAdmin(request)) {
         return new Response(JSON.stringify({ error: 'Unauthorized admin' }), { status: 401, headers: JSON_HEADERS });
       }
-      const { email, new_password } = await request.json().catch(() => ({}));
-      if (env.DB && new_password) {
-        try {
-          await env.DB.prepare('UPDATE admin_users SET password_hash = ? WHERE LOWER(email) = LOWER(?)').bind(new_password, email || 'omkumar.working@gmail.com').run();
-        } catch (e) {}
+      const b = await request.json().catch(() => ({}));
+      const newNat = {
+        id: b.id || ('nat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)),
+        name: b.name || 'Unnamed Nationalist',
+        handle_x: b.handle_x || '',
+        handle_yt: b.handle_yt || '',
+        handle_insta: b.handle_insta || '',
+        other_links: b.other_links || '',
+        avatar_url: b.avatar_url || '',
+        category: b.category || 'Nationalist Creator',
+        description: b.description || '',
+        status: b.status || 'approved',
+        is_verified: b.is_verified !== undefined ? b.is_verified : 1,
+        upvotes: b.upvotes || 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const existingIdx = memoryState.nationalists.findIndex(n => n.id === newNat.id);
+      if (existingIdx >= 0) {
+        memoryState.nationalists[existingIdx] = { ...memoryState.nationalists[existingIdx], ...newNat };
+      } else {
+        memoryState.nationalists.unshift(newNat);
       }
-      return new Response(JSON.stringify({ success: true, message: 'Admin credentials updated successfully.' }), { headers: JSON_HEADERS });
+
+      return new Response(JSON.stringify({ success: true, nationalist: newNat }), { headers: JSON_HEADERS });
+    }
+
+    if (path.startsWith('/api/admin/nationalist-influencers/') && (request.method === 'PATCH' || request.method === 'PUT')) {
+      if (!isAuthorizedAdmin(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized admin' }), { status: 401, headers: JSON_HEADERS });
+      }
+      const id = path.split('/')[4];
+      const b = await request.json().catch(() => ({}));
+      const nat = memoryState.nationalists.find(n => n.id === id);
+      if (nat) {
+        Object.assign(nat, b);
+        nat.updated_at = new Date().toISOString();
+        return new Response(JSON.stringify({ success: true, nationalist: nat }), { headers: JSON_HEADERS });
+      }
+      return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: JSON_HEADERS });
+    }
+
+    if (path.startsWith('/api/admin/nationalist-influencers/') && request.method === 'DELETE') {
+      if (!isAuthorizedAdmin(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized admin' }), { status: 401, headers: JSON_HEADERS });
+      }
+      const id = path.split('/')[4];
+      memoryState.nationalists = memoryState.nationalists.filter(n => n.id !== id);
+      return new Response(JSON.stringify({ success: true }), { headers: JSON_HEADERS });
     }
 
     // -------------------------------------------------------------
-    // GENERAL WEBSITE ENDPOINTS (POSTS, STATS, POLL)
+    // REPORTS SYSTEM
     // -------------------------------------------------------------
+    if (path === '/api/reports' && request.method === 'POST') {
+      try {
+        const body = await request.json().catch(() => ({}));
+        const newRep = {
+          id: 'rep_' + Date.now(),
+          entity_id: body.entity_id || '',
+          entity_name: body.entity_name || 'Reported Entity',
+          report_type: body.report_type || 'General Violation',
+          message: body.message || '',
+          status: 'pending',
+          reported_by_ip: clientIp,
+          created_at: new Date().toISOString()
+        };
+        memoryState.reports.unshift(newRep);
+        return new Response(JSON.stringify({ success: true, report: newRep }), { headers: JSON_HEADERS });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
+      }
+    }
+
+    if (path === '/api/admin/reports' && request.method === 'GET') {
+      if (!isAuthorizedAdmin(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      }
+      return new Response(JSON.stringify(memoryState.reports), { headers: JSON_HEADERS });
+    }
+
+    if (path.startsWith('/api/admin/reports/') && request.method === 'PATCH') {
+      if (!isAuthorizedAdmin(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      }
+      const repId = path.split('/')[4];
+      const body = await request.json().catch(() => ({}));
+      const rep = memoryState.reports.find(r => r.id === repId);
+      if (rep) {
+        if (body.status) rep.status = body.status;
+        return new Response(JSON.stringify({ success: true, report: rep }), { headers: JSON_HEADERS });
+      }
+      return new Response(JSON.stringify({ error: 'Report not found' }), { status: 404, headers: JSON_HEADERS });
+    }
+
+    // -------------------------------------------------------------
+    // CATEGORIES, PLAYLIST, SPOTLIGHT, POSTS
+    // -------------------------------------------------------------
+    if (path === '/api/categories' && request.method === 'GET') {
+      const type = url.searchParams.get('type');
+      let cats = memoryState.categories;
+      if (type) cats = cats.filter(c => c.type === type);
+      return new Response(JSON.stringify(cats), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/admin/categories' && request.method === 'GET') {
+      return new Response(JSON.stringify(memoryState.categories), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/admin/categories' && request.method === 'POST') {
+      if (!isAuthorizedAdmin(request)) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      const b = await request.json().catch(() => ({}));
+      const newCat = {
+        id: 'cat_' + Date.now(),
+        name: b.name || 'New Category',
+        description: b.description || '',
+        color: b.color || '#f59e0b',
+        type: b.type || 'entity'
+      };
+      memoryState.categories.push(newCat);
+      return new Response(JSON.stringify({ success: true, category: newCat }), { headers: JSON_HEADERS });
+    }
+
+    if (path.startsWith('/api/admin/categories/') && request.method === 'DELETE') {
+      if (!isAuthorizedAdmin(request)) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      const id = path.split('/')[4];
+      memoryState.categories = memoryState.categories.filter(c => c.id !== id);
+      return new Response(JSON.stringify({ success: true }), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/playlist' && request.method === 'GET') {
+      return new Response(JSON.stringify(memoryState.playlist.filter(p => p.is_active)), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/admin/playlist' && request.method === 'GET') {
+      return new Response(JSON.stringify(memoryState.playlist), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/admin/playlist' && request.method === 'POST') {
+      if (!isAuthorizedAdmin(request)) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      const b = await request.json().catch(() => ({}));
+      const newTrack = {
+        id: 'track_' + Date.now(),
+        title: b.title || 'National Anthem',
+        artist: b.artist || 'Sovereign Voices',
+        audio_url: b.audio_url || '',
+        duration: b.duration || '3:00',
+        is_active: 1
+      };
+      memoryState.playlist.push(newTrack);
+      return new Response(JSON.stringify({ success: true, track: newTrack }), { headers: JSON_HEADERS });
+    }
+
+    if (path.startsWith('/api/admin/playlist/') && request.method === 'DELETE') {
+      if (!isAuthorizedAdmin(request)) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      const id = path.split('/')[4];
+      memoryState.playlist = memoryState.playlist.filter(p => p.id !== id);
+      return new Response(JSON.stringify({ success: true }), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/spotlight' && request.method === 'GET') {
+      const spot = memoryState.entities[0] || null;
+      return new Response(JSON.stringify({ entity: spot }), { headers: JSON_HEADERS });
+    }
+
     if (path === '/api/posts' && request.method === 'GET') {
       return new Response(JSON.stringify(memoryState.posts), { headers: JSON_HEADERS });
-    }
-
-    if (path === '/api/stats' && request.method === 'GET') {
-      return new Response(JSON.stringify({
-        totalExposed: 42,
-        totalVotes: 12480,
-        pendingReports: 3,
-        totalNationalists: 88,
-        activeMembers: memoryState.users.length,
-        liveTrafficOnline: 34
-      }), { headers: JSON_HEADERS });
-    }
-
-    if (path === '/api/live-count' && request.method === 'GET') {
-      return new Response(JSON.stringify({ count: Math.floor(Math.random() * 20) + 35 }), { headers: JSON_HEADERS });
-    }
-
-    if (path === '/api/announcement' && request.method === 'GET') {
-      return new Response(JSON.stringify({ announcement: '🇮🇳 Rashtra Hit Sarvopari — Welcome to Exposed Propagandus Sovereign Community' }), { headers: JSON_HEADERS });
     }
 
     if (path === '/api/poll' && request.method === 'GET') {
       return new Response(JSON.stringify({ votes: memoryState.pollVotes }), { headers: JSON_HEADERS });
     }
 
-    if (path === '/api/track-visit' && request.method === 'POST') {
+    // -------------------------------------------------------------
+    // ADMIN AUTHENTICATION & MANAGEMENT
+    // -------------------------------------------------------------
+    if (path === '/api/admin/login' && request.method === 'POST') {
+      try {
+        const body = await request.json().catch(() => ({}));
+        const { username, password, email } = body;
+        const inputId = (username || email || '').trim().toLowerCase();
+
+        const isMaster = (inputId === 'omkumar' || inputId === 'omkumar.working@gmail.com') &&
+                         (password === 'Q0gng04bk3' || password === 'JaiHindBharatMataKiJai2024!');
+
+        if (isMaster) {
+          const token = 'ep-adm-' + Date.now() + '-' + Math.random().toString(36).substr(2, 8);
+          memoryState.activeAdminTokens.add(token);
+          return new Response(JSON.stringify({
+            success: true,
+            token,
+            adminToken: token,
+            user: {
+              name: 'Om Kumar',
+              email: 'omkumar.working@gmail.com',
+              role: 'SUPER_ADMIN'
+            }
+          }), { headers: JSON_HEADERS });
+        }
+
+        return new Response(JSON.stringify({ error: 'Invalid admin credentials' }), { status: 401, headers: JSON_HEADERS });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
+      }
+    }
+
+    if (path === '/api/admin/check-access' && request.method === 'GET') {
+      const authorized = isAuthorizedAdmin(request);
+      return new Response(JSON.stringify({ authorized }), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/admin/credentials' && (request.method === 'PUT' || request.method === 'POST')) {
+      if (!isAuthorizedAdmin(request)) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      return new Response(JSON.stringify({ success: true, message: 'Admin credentials maintained under sovereign lock.' }), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/admin/shield-attempts' && request.method === 'GET') {
+      if (!isAuthorizedAdmin(request)) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      return new Response(JSON.stringify(memoryState.shieldAttempts), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/admin/block-ip' && request.method === 'POST') {
+      if (!isAuthorizedAdmin(request)) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      const b = await request.json().catch(() => ({}));
+      if (b.ip) memoryState.blockedIps.add(b.ip);
       return new Response(JSON.stringify({ success: true }), { headers: JSON_HEADERS });
+    }
+
+    if (path.startsWith('/api/admin/block-ip/') && request.method === 'DELETE') {
+      if (!isAuthorizedAdmin(request)) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      const ip = path.split('/')[4];
+      memoryState.blockedIps.delete(ip);
+      return new Response(JSON.stringify({ success: true }), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/admin/security' && request.method === 'GET') {
+      if (!isAuthorizedAdmin(request)) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      return new Response(JSON.stringify({
+        blockedIps: Array.from(memoryState.blockedIps),
+        shieldAttempts: memoryState.shieldAttempts,
+        activeAdminSessions: memoryState.activeAdminTokens.size
+      }), { headers: JSON_HEADERS });
+    }
+
+    if (path === '/api/admin/backup' && request.method === 'GET') {
+      const key = url.searchParams.get('adminKey') || request.headers.get('x-admin-key');
+      if (key !== 'JaiHindBharatMataKiJai2024!' && key !== 'Q0gng04bk3' && !key?.startsWith('ep-adm-')) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      }
+      const dump = {
+        timestamp: new Date().toISOString(),
+        entities: memoryState.entities,
+        nationalists: memoryState.nationalists,
+        categories: memoryState.categories,
+        playlist: memoryState.playlist,
+        posts: memoryState.posts,
+        reports: memoryState.reports,
+        bulletin: memoryState.bulletin,
+        govtPoll: memoryState.govtPoll
+      };
+      return new Response(JSON.stringify(dump, null, 2), {
+        headers: {
+          ...JSON_HEADERS,
+          'Content-Disposition': 'attachment; filename="exposed-propagandus-backup-' + Date.now() + '.json"'
+        }
+      });
+    }
+
+    if (path === '/api/admin/restore' && request.method === 'POST') {
+      if (!isAuthorizedAdmin(request)) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS });
+      try {
+        const body = await request.json();
+        const data = body.backup || body;
+        if (data.entities) memoryState.entities = data.entities;
+        if (data.nationalists) memoryState.nationalists = data.nationalists;
+        if (data.categories) memoryState.categories = data.categories;
+        if (data.playlist) memoryState.playlist = data.playlist;
+        if (data.posts) memoryState.posts = data.posts;
+        if (data.reports) memoryState.reports = data.reports;
+        if (data.bulletin) memoryState.bulletin = data.bulletin;
+        if (data.govtPoll) memoryState.govtPoll = data.govtPoll;
+        return new Response(JSON.stringify({ success: true, message: 'Database state restored successfully.' }), { headers: JSON_HEADERS });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: 'Invalid restore data' }), { status: 400, headers: JSON_HEADERS });
+      }
     }
 
     // Health Check Root
