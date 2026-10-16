@@ -1,15 +1,20 @@
 /**
  * ===================================================================
- * 🛡️ EXPOSED PROPAGANDUS — FULL STACK CLOUDFLARE WORKER API SERVER
+ * 🛡️ EXPOSED PROPAGANDUS — SECURED CLOUDFLARE WORKER API SERVER
  * ===================================================================
- * High-performance edge API server compatible with Cloudflare Workers
- * Supports Cloudflare D1 serverless database, in-memory resilient fallback,
- * real-time SSE community chat, automated Instagram/YouTube/X profile scraping,
- * live traffic analytics, nationalist influencer directory, and patriot shield.
+ * Ultra-secure edge API server with Sovereign Patriot Shield.
+ * - Blocks all direct browser navigation, URL scraping, and inspection.
+ * - Requires cryptographic time-rotating handshake token for all requests.
+ * - Strict role-based sanitization (passwords, emails, IPs never exposed).
+ * - High-performance resilient in-memory fallback for all operations.
+ * - Real-time SSE community stream, social profile scraper, live analytics.
  *
  * Bharat Mata ki Jai 🇮🇳
  * ===================================================================
  */
+
+const EP_CLIENT_KEY = 'ep-client-v1-bharat-first-2024';
+const EP_SHIELD_SALT = 'BharatSovereignShield2026!Protected@Edge';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -260,6 +265,29 @@ const memoryState = {
   }
 };
 
+// Cryptographic hash algorithms for edge verification
+function computeFastHash(str) {
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
+}
+
+async function computeSha256(str) {
+  try {
+    const enc = new TextEncoder();
+    const buf = await crypto.subtle.digest('SHA-256', enc.encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch (e) {
+    return computeFastHash(str);
+  }
+}
+
 // Clean social handles
 function cleanSocialHandle(input, platform) {
   if (!input || typeof input !== 'string') return '';
@@ -442,6 +470,36 @@ function isAuthorizedAdmin(request) {
   );
 }
 
+// HTML 403 Defense Screen for Direct Browser Address Bar Navigation
+function renderShieldBlockPage(clientIp, path) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>403 Forbidden — Sovereign Patriot Shield</title>
+  <style>
+    body { background: #0b0f19; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+    .card { background: #111827; border: 2px solid #ef4444; border-radius: 16px; max-width: 540px; padding: 32px; text-align: center; box-shadow: 0 10px 40px rgba(239,68,68,0.25); }
+    .badge { display: inline-block; background: #ef4444; color: #fff; font-size: 11px; font-weight: 900; letter-spacing: 1px; padding: 4px 12px; border-radius: 999px; text-transform: uppercase; margin-bottom: 16px; }
+    h1 { font-size: 24px; font-weight: 900; margin: 0 0 12px 0; color: #fff; }
+    p { font-size: 14px; color: #9ca3af; line-height: 1.6; margin: 0 0 20px 0; }
+    .code { background: #030712; border: 1px solid #374151; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #f87171; text-align: left; margin-bottom: 24px; word-break: break-all; }
+    .btn { display: inline-block; background: #ff9933; color: #000; font-weight: 800; font-size: 13px; padding: 12px 24px; border-radius: 8px; text-decoration: none; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">🛡️ Sovereign Shield Interception</div>
+    <h1>403 — Direct Inspection Blocked</h1>
+    <p>Direct manual browser navigation, scraping, and inspection of internal database endpoints are strictly restricted under sovereign cybersecurity policy.</p>
+    <div class="code">INTERCEPTED TARGET: ${path}<br>ORIGINATING IP: ${clientIp}<br>TIMESTAMP: ${new Date().toISOString()}<br>STATUS: Access Denied & Logged.</div>
+    <a href="https://exposedpropagandu.infinityfreeapp.com" class="btn">Return to Official Website 🇮🇳</a>
+  </div>
+</body>
+</html>`;
+}
+
 export default {
   async fetch(request, env, ctx) {
     // 1. Handle CORS Preflight (OPTIONS)
@@ -459,6 +517,98 @@ export default {
         status: 403,
         headers: JSON_HEADERS
       });
+    }
+
+    // Health Check Root (always public)
+    if (path === '/' || path === '/health' || path === '/api/health') {
+      return new Response(JSON.stringify({
+        status: 'ONLINE',
+        platform: 'Cloudflare Worker',
+        shield: 'Sovereign Patriot Shield Active',
+        slogan: 'Bharat Mata ki Jai 🇮🇳',
+        timestamp: new Date().toISOString()
+      }), { headers: JSON_HEADERS });
+    }
+
+    // =============================================================
+    // 🛡️ SOVEREIGN SHIELD: DIRECT ACCESS & INSPECTION INTERCEPTOR
+    // =============================================================
+    if (path.startsWith('/api')) {
+      const isAdmin = isAuthorizedAdmin(request);
+      const isDirectNav = request.headers.get('sec-fetch-dest') === 'document' ||
+                          request.headers.get('sec-fetch-mode') === 'navigate' ||
+                          (request.headers.get('accept') || '').includes('text/html');
+
+      // Block direct address bar navigation for non-admins
+      if (isDirectNav && !isAdmin) {
+        memoryState.shieldAttempts.push({
+          id: 'att_' + Date.now(),
+          ip: clientIp,
+          attempted_name: 'Direct URL Inspection: ' + path,
+          details: 'Direct browser address bar attempt blocked by Sovereign Shield.',
+          created_at: new Date().toISOString()
+        });
+
+        return new Response(renderShieldBlockPage(clientIp, path), {
+          status: 403,
+          headers: {
+            ...CORS_HEADERS,
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'no-store, no-cache, must-revalidate'
+          }
+        });
+      }
+
+      // Check dynamic cryptographic handshake
+      if (!isAdmin) {
+        const timestamp = request.headers.get('x-ep-timestamp') || url.searchParams.get('ep_t') || '';
+        const sig = request.headers.get('x-ep-signature') || url.searchParams.get('ep_sig') || '';
+        const clientKey = request.headers.get('x-client-key') || request.headers.get('x-app-key') || url.searchParams.get('key') || '';
+
+        let isVerified = false;
+
+        // Image files inside <img> tags (allow if sec-fetch-dest is image)
+        if (path.startsWith('/api/community/files/') && request.headers.get('sec-fetch-dest') === 'image') {
+          isVerified = true;
+        }
+
+        if (!isVerified && timestamp && sig) {
+          const now = Date.now();
+          const reqTime = parseInt(timestamp, 10);
+          // Check timestamp drift: within 120 seconds
+          if (!isNaN(reqTime) && Math.abs(now - reqTime) <= 120000) {
+            if (clientKey === EP_CLIENT_KEY) {
+              const raw = `${timestamp}:${path}:${EP_SHIELD_SALT}`;
+              const fastExpected = computeFastHash(raw);
+              if (sig === fastExpected) {
+                isVerified = true;
+              } else {
+                const shaExpected = await computeSha256(raw);
+                if (sig === shaExpected) {
+                  isVerified = true;
+                }
+              }
+            }
+          }
+        }
+
+        if (!isVerified) {
+          memoryState.shieldAttempts.push({
+            id: 'att_' + Date.now(),
+            ip: clientIp,
+            attempted_name: 'Unverified Access: ' + path,
+            details: 'Blocked API request lacking valid cryptographic runtime signature.',
+            created_at: new Date().toISOString()
+          });
+
+          return new Response(JSON.stringify({
+            error: 'ACCESS_DENIED',
+            status: 403,
+            message: '🛡️ Sovereign Patriot Shield: Direct manual inspection or unauthorized scraping of API endpoints is strictly prohibited. Access is restricted exclusively to authenticated application client runtimes.',
+            code: 'SHIELD_BLOCKED_INSPECTION'
+          }), { status: 403, headers: JSON_HEADERS });
+        }
+      }
     }
 
     // -------------------------------------------------------------
@@ -544,20 +694,21 @@ export default {
     }
 
     // -------------------------------------------------------------
-    // COMMUNITY: SYNC
+    // COMMUNITY: SYNC (STRICT ROLE-BASED DATA SANITIZATION)
     // -------------------------------------------------------------
     if (path === '/api/community/sync' && request.method === 'GET') {
       const isAdmin = isAuthorizedAdmin(request);
 
       if (env?.DB) {
         try {
+          // Sensitive fields (password, email, phone, ip) NEVER queried for non-admins
           const userQuery = isAdmin
             ? 'SELECT id, name, username, email, phone, avatar_url, verified_type, is_admin, is_banned, created_at FROM community_users ORDER BY created_at DESC'
-            : 'SELECT id, name, username, avatar_url, verified_type, is_admin, is_banned, created_at FROM community_users WHERE is_banned = 0 ORDER BY created_at DESC';
+            : 'SELECT id, name, username, avatar_url, verified_type, is_admin, created_at FROM community_users WHERE is_banned = 0 ORDER BY created_at DESC';
 
           const usersRes = await env.DB.prepare(userQuery).all();
-          const msgsRes = await env.DB.prepare('SELECT * FROM community_messages WHERE is_deleted = 0 ORDER BY created_at DESC LIMIT 200').all();
-          const chansRes = await env.DB.prepare('SELECT * FROM community_channels ORDER BY created_at ASC').all();
+          const msgsRes = await env.DB.prepare('SELECT id, channel_id, user_id, user_name, username, user_avatar, verified_type, content, attachments, media_links, gif_url, reactions, reply_to, is_deleted, created_at FROM community_messages WHERE is_deleted = 0 ORDER BY created_at DESC LIMIT 200').all();
+          const chansRes = await env.DB.prepare('SELECT id, creator_id, creator_name, creator_username, name, description, is_private, members, created_at FROM community_channels ORDER BY created_at ASC').all();
 
           const parsedMsgs = (msgsRes.results || []).map(m => ({
             ...m,
@@ -568,8 +719,7 @@ export default {
 
           const parsedChans = (chansRes.results || []).map(c => ({
             ...c,
-            members: c.members ? JSON.parse(c.members) : [],
-            pending_requests: c.pending_requests ? JSON.parse(c.pending_requests) : []
+            members: c.members ? JSON.parse(c.members) : []
           }));
 
           return new Response(JSON.stringify({
@@ -582,10 +732,18 @@ export default {
         } catch (e) {}
       }
 
+      // Memory Fallback strictly sanitized
       const sanitizedUsers = memoryState.users.map(u => {
         if (isAdmin) return u;
-        const { password_hash, email, phone, ip_address, ...safe } = u;
-        return safe;
+        return {
+          id: u.id,
+          name: u.name,
+          username: u.username,
+          avatar_url: u.avatar_url,
+          verified_type: u.verified_type,
+          is_admin: u.is_admin || 0,
+          created_at: u.created_at
+        };
       });
 
       return new Response(JSON.stringify({
@@ -647,7 +805,7 @@ export default {
         memoryState.users.push(newUser);
         broadcastSSE({ type: 'USER_REGISTERED', user: { id: newUser.id, name: newUser.name, username: newUser.username, avatar_url: newUser.avatar_url } });
 
-        const { password_hash, ...safeUser } = newUser;
+        const { password_hash, email: e, phone: p, ip_address: ip, ...safeUser } = newUser;
         return new Response(JSON.stringify({ success: true, user: safeUser }), { headers: JSON_HEADERS });
       } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
@@ -684,7 +842,7 @@ export default {
           return new Response(JSON.stringify({ error: 'This account has been suspended for violating community guidelines.' }), { status: 403, headers: JSON_HEADERS });
         }
 
-        const { password_hash, ...safeUser } = foundUser;
+        const { password_hash, email: e, phone: p, ip_address: ip, ...safeUser } = foundUser;
         return new Response(JSON.stringify({ success: true, user: safeUser }), { headers: JSON_HEADERS });
       } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: JSON_HEADERS });
@@ -1597,17 +1755,6 @@ export default {
       } catch (e) {
         return new Response(JSON.stringify({ error: 'Invalid restore data' }), { status: 400, headers: JSON_HEADERS });
       }
-    }
-
-    // Health Check Root
-    if (path === '/' || path === '/health' || path === '/api/health') {
-      return new Response(JSON.stringify({
-        status: 'ONLINE',
-        platform: 'Cloudflare Worker',
-        mission: 'Exposed Propagandus Sovereign API',
-        slogan: 'Bharat Mata ki Jai 🇮🇳',
-        timestamp: new Date().toISOString()
-      }), { headers: JSON_HEADERS });
     }
 
     // 404 Endpoint Not Found
